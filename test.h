@@ -6,36 +6,12 @@
 
 #ifndef _TEST_H_
 #define _TEST_H_
-#define E88     0x00
-#define E801    0x04
-#define E820NR  0x08           /* # entries in E820MAP */
-#define E820MAP 0x0c           /* our map */
-#define E820MAX 127            /* number of entries in E820MAP */
-#define E820ENTRY_SIZE 20
-#define MEMINFO_SIZE (E820MAP + E820MAX * E820ENTRY_SIZE)
 
-#ifndef __ASSEMBLY__
-
-#define E820_RAM        1
-#define E820_RESERVED   2
-#define E820_ACPI       3 /* usable as RAM once ACPI tables have been read */
-#define E820_NVS        4
-
-struct e820entry {
-        unsigned long long addr;        /* start of memory segment */
-        unsigned long long size;        /* size of memory segment */
-        unsigned long type;             /* type of memory segment */
-};
-
-struct mem_info_t {
-	unsigned long e88_mem_k;	/* 0x00 */
-	unsigned long e801_mem_k;	/* 0x04 */
-	unsigned long e820_nr;		/* 0x08 */
-	struct e820entry e820[E820MAX];	/* 0x0c */
-					/* 0x28c */
-};
+#include "arch.h"
 
 typedef unsigned long ulong;
+#ifndef __ASSEMBLY__
+
 #define STACKSIZE       (8*1024)
 #define MAX_MEM         0x7FF00000      /* 8 TB */
 #define WIN_SZ          0x80000         /* 2 GB */
@@ -45,15 +21,6 @@ typedef unsigned long ulong;
 #define MOD_SZ		20
 #define BAILOUT		if (bail) return(1);
 #define BAILR		if (bail) return;
-
-#define RES_START	0xa0000
-#define RES_END		0x100000
-#define SCREEN_ADR	0xb8000
-#define SCREEN_END_ADR  (SCREEN_ADR + 80*25*2)
-
-#define DMI_SEARCH_START  0x0000F000
-#define DMI_SEARCH_LENGTH 0x000F0FFF
-#define MAX_DMI_MEMDEVS 16
 
 #define TITLE_WIDTH	 28
 #define LINE_TITLE 		0
@@ -104,8 +71,11 @@ typedef unsigned long ulong;
 #define SZ_MODE_BIOS		1
 #define SZ_MODE_PROBE		2
 
-#define getCx86(reg) ({ outb((reg), 0x22); inb(0x23); })
-
+extern int beepmode;
+void parse_command_line(const char *cp);
+void switch_to_main_stack(unsigned cpu_num);
+void run_at(unsigned long addr, int cpu);
+void get_mem_speed(int cpu, int ncpus);
 int memcmp(const void *s1, const void *s2, ulong count);
 void *memmove(void *dest, const void *src, ulong n);
 int strncmp(const char *s1, const char *s2, ulong n);
@@ -118,7 +88,7 @@ void printpatn(void);
 void printpatn(void);
 void itoa(char s[], int n); 
 void reverse(char *p);
-void serial_console_setup(char *param);
+void serial_console_setup(const char *param);
 void serial_echo_init(void);
 void serial_echo_print(const char *s);
 void ttyprint(int y, int x, const char *s);
@@ -131,11 +101,11 @@ void hprint3(int y,int x, ulong val, int len);
 void xprint(int y,int x,ulong val);
 void aprint(int y,int x,ulong page);
 void dprint(int y,int x,ulong val,int len, int right);
-void movinv1(int iter, ulong p1, ulong p2, int cpu);
+void movinv1(int iter, uint32_t p1, uint32_t p2, int cpu);
 void movinvr(int cpu);
-void movinv32(int iter, ulong p1, ulong lb, ulong mb, int sval, int off,
+void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t mb, int sval, int off,
 	int cpu);
-void modtst(int off, int iter, ulong p1, ulong p2, int cpu);
+void modtst(int off, int iter, uint32_t p1, uint32_t p2, int cpu);
 void error(ulong* adr, ulong good, ulong bad);
 void ad_err1(ulong *adr1, ulong *adr2, ulong good, ulong bad);
 void ad_err2(ulong *adr, ulong bad);
@@ -186,8 +156,8 @@ int isdigit(char c);
 ulong memspeed(ulong src, ulong len, int iter);
 unsigned long page_of(void *ptr);
 ulong correct_tsc(ulong el_org);
-void bit_fade_fill(unsigned long n, int cpu);
-void bit_fade_chk(unsigned long n, int cpu);
+void bit_fade_fill(uint32_t n, int cpu);
+void bit_fade_chk(uint32_t n, int cpu);
 void find_ticks_for_pass(void);
 void beep(unsigned int frequency);
 
@@ -202,27 +172,6 @@ struct pair {
        ulong adr;
        ulong mask;
 };
-
-static inline void cache_off(void)
-{
-        asm(
-		"push %eax\n\t"
-		"movl %cr0,%eax\n\t"
-    "orl $0x40000000,%eax\n\t"  /* Set CD */
-    "movl %eax,%cr0\n\t"
-		"wbinvd\n\t"
-		"pop  %eax\n\t");
-}
-
-static inline void cache_on(void)
-{
-        asm(
-		"push %eax\n\t"
-		"movl %cr0,%eax\n\t"
-    "andl $0x9fffffff,%eax\n\t" /* Clear CD and NW */ 
-    "movl %eax,%cr0\n\t"
-		"pop  %eax\n\t");
-}
 
 struct mmap {
 	ulong pbase_addr;
@@ -264,11 +213,6 @@ struct err_info {
 };
 
 
-
-#define X86_FEATURE_PAE		(0*32+ 6) /* Physical Address Extensions */
-
-#define MAX_MEM_SEGMENTS E820MAX
-
 /* Define common variables accross relocations of memtest86 */
 struct vars {
 	int pass;
@@ -288,10 +232,8 @@ struct vars {
 	ulong plim_lower;
 	ulong plim_upper;
 	ulong clks_msec;
-	ulong starth;
-	ulong startl;
-	ulong snaph;
-	ulong snapl;
+	uint64_t startt;
+	uint64_t snapt;
 	int printmode;
 	int numpatn;
 	struct pair patn [BADRAM_MAXPATNS];
@@ -312,7 +254,7 @@ extern struct vars * const v;
 extern unsigned char _start[], _end[], startup_32[];
 extern unsigned char _size, _pages;
 
-extern struct mem_info_t mem_info;
+#include "globals.h"
 
 #endif /* __ASSEMBLY__ */
 #endif /* _TEST_H_ */

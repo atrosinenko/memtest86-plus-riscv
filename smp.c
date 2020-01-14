@@ -11,13 +11,12 @@
 
 #include "stddef.h"
 #include "stdint.h"
-#include "cpuid.h"
 #include "smp.h"
 #include "test.h"
 
 #define DELAY_FACTOR 1
 unsigned num_cpus = 1; // There is at least one cpu, the BSP
-int act_cpus;
+unsigned act_cpus;
 unsigned found_cpus = 0;
 
 extern void memcpy(void *dst, void *src , int len);
@@ -34,7 +33,7 @@ void smp_find_cpus();
 void barrier_init(int max)
 {
 	/* Set the adddress of the barrier structure */
-	barr = (struct barrier_s *)0x9ff00;
+	barr = (struct barrier_s *)BARRIER_ADDR;
         barr->lck.slock = 1;
         barr->mutex.slock = 1;
         barr->maxproc = max;
@@ -109,6 +108,7 @@ volatile apic_register_t *APIC = NULL;
 static unsigned cpu_num_to_apic_id[MAX_CPUS];
 volatile ap_info_t AP[MAX_CPUS];
 
+#if defined(__i386__)
 void PUT_MEM16(uintptr_t addr, uint16_t val)
 {
    *((volatile uint16_t *)addr) = val;
@@ -149,7 +149,7 @@ SEND_IPI(unsigned apic_id, unsigned trigger, unsigned level, unsigned mode,
       | (vector);
    APIC_WRITE(APICR_ICRLO, v);
 }
-
+#endif
 
 // Silly way of busywaiting, but we don't have a timer
 void delay(unsigned us) 
@@ -181,7 +181,7 @@ void initialise_cpus(void)
 	int i;
 
 	act_cpus = 0;
-
+#if HAS_SMP
 	if (maxcpus > 1) {
 		smp_find_cpus();
 		/* The total number of CPUs may be limited */
@@ -194,13 +194,16 @@ void initialise_cpus(void)
 				act_cpus++;
 			}
 		}
-	} else {
+	} else
+#else
+	{
 		act_cpus = found_cpus = num_cpus = 1;
 	}
+#endif
 
 	/* Initialize the barrier before starting AP's */
 	barrier_init(act_cpus);
-
+#if HAS_SMP
 	/* let the BSP initialise the APs. */
 	for(i = 1; i < num_cpus; i++) {
 	    /* Only start this CPU if it is selected by the mask */
@@ -208,8 +211,10 @@ void initialise_cpus(void)
 	        smp_boot_ap(i);
 	    }
 	}
-
+#endif
 }
+
+#if defined(__i386__)
 void kick_cpu(unsigned cpu_num)
 {
    unsigned num_sipi, apic_id;
@@ -667,6 +672,12 @@ unsigned smp_my_cpu_num()
    }
    return i;
 }
+#else
+unsigned smp_my_cpu_num()
+{
+	return 0;
+}
+#endif
 
 /* A set of simple functions used to preserve assigned CPU ordinals since
  * they are lost after relocation (the stack is reloaded).

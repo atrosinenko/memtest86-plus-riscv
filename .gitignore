@@ -1,0 +1,4 @@
+*.o
+*.s
+memtest_shared
+memtest.bin

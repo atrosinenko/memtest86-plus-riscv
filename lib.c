@@ -4,12 +4,13 @@
  * By Chris Brady
  */
 #include "io.h"
+#if defined(__i386__)
 #include "serial.h"
+#endif
 #include "test.h"
 #include "config.h"
 #include "screen_buffer.h"
 #include "stdint.h"
-#include "cpuid.h"
 #include "smp.h"
 
 
@@ -19,7 +20,6 @@ short serial_cons = SERIAL_CONSOLE_DEFAULT;
 #error Bad SERIAL_TTY. Only ttyS0 and ttyS1 are supported.
 #endif
 short serial_tty = SERIAL_TTY;
-const short serial_base_ports[] = {0x3f8, 0x2f8};
 
 #if ((115200%SERIAL_BAUD_RATE) != 0)
 #error Bad default baud rate
@@ -32,21 +32,6 @@ struct ascii_map_str {
         int ascii;
         int keycode;
 };
-
-inline void reboot(void)
-{
-	
-	/* tell the BIOS to do a cold start */
-	*((unsigned short *)0x472) = 0x0;
-	
-	while(1)
-	{
-		outb(0xFE, 0x64);
-		outb(0x02, 0xcf9); /* reset that doesn't rely on the keyboard controller */
-		outb(0x04, 0xcf9);
-		outb(0x0E, 0xcf9);
-	}
-}
 
 int strlen(char * string){
 	int i=0;
@@ -457,170 +442,16 @@ void xprint(int y,int x, ulong val)
 	dprint(y, x+10, j, 4, 0);
 }
 
-char *codes[] = {
-	"  Divide",
-	"   Debug",
-	"     NMI",
-	"  Brkpnt",
-	"Overflow",
-	"   Bound",
-	"  Inv_Op",
-	" No_Math",
-	"Double_Fault",
-	"Seg_Over",
-	" Inv_TSS",
-	"  Seg_NP",
-	"Stack_Fault",
-	"Gen_Prot",
-	"Page_Fault",
-	"   Resvd",
-	"     FPE",
-	"Alignment",
-	" Mch_Chk",
-	"SIMD FPE"
-};
-
-struct eregs {
-	ulong ss;
-	ulong ds;
-	ulong esp;
-	ulong ebp;
-	ulong esi;
-	ulong edi;
-	ulong edx;
-	ulong ecx;
-	ulong ebx;
-	ulong eax;
-	ulong vect;
-	ulong code;
-	ulong eip;
-	ulong cs;
-	ulong eflag;
-};
-	
-/* Handle an interrupt */
-void inter(struct eregs *trap_regs)
-{
-	int i, line;
-	unsigned char *pp;
-	ulong address = 0;
-	int my_cpu_num = smp_my_cpu_num();
-
-	/* Get the page fault address */
-	if (trap_regs->vect == 14) {
-		__asm__("movl %%cr2,%0":"=r" (address));
-	}
-#ifdef PARITY_MEM
-
-	/* Check for a parity error */
-	if (trap_regs->vect == 2) {
-		parity_err(trap_regs->edi, trap_regs->esi);
-		return;
-	}
-#endif
-
-	/* clear scrolling region */
-        pp=(unsigned char *)(SCREEN_ADR+(2*80*(LINE_SCROLL-2)));
-        for(i=0; i<2*80*(24-LINE_SCROLL-2); i++, pp+=2) {
-                *pp = ' ';
-        }
-	line = LINE_SCROLL-2;
-
-	cprint(line, 0, "Unexpected Interrupt - Halting CPU");
-	dprint(line, COL_MID + 4, my_cpu_num, 2, 1);
-	cprint(line+2, 0, " Type: ");
-	if (trap_regs->vect <= 19) {
-		cprint(line+2, 7, codes[trap_regs->vect]);
-	} else {
-		hprint(line+2, 7, trap_regs->vect);
-	}
-	cprint(line+3, 0, "   PC: ");
-	hprint(line+3, 7, trap_regs->eip);
-	cprint(line+4, 0, "   CS: ");
-	hprint(line+4, 7, trap_regs->cs);
-	cprint(line+5, 0, "Eflag: ");
-	hprint(line+5, 7, trap_regs->eflag);
-	cprint(line+6, 0, " Code: ");
-	hprint(line+6, 7, trap_regs->code);
-	cprint(line+7, 0, "   DS: ");
-	hprint(line+7, 7, trap_regs->ds);
-	cprint(line+8, 0, "   SS: ");
-	hprint(line+8, 7, trap_regs->ss);
-	if (trap_regs->vect == 14) {
-		/* Page fault address */
-		cprint(line+7, 0, " Addr: ");
-		hprint(line+7, 7, address);
-	}
-
-	cprint(line+2, 20, "eax: ");
-	hprint(line+2, 25, trap_regs->eax);
-	cprint(line+3, 20, "ebx: ");
-	hprint(line+3, 25, trap_regs->ebx);
-	cprint(line+4, 20, "ecx: ");
-	hprint(line+4, 25, trap_regs->ecx);
-	cprint(line+5, 20, "edx: ");
-	hprint(line+5, 25, trap_regs->edx);
-	cprint(line+6, 20, "edi: ");
-	hprint(line+6, 25, trap_regs->edi);
-	cprint(line+7, 20, "esi: ");
-	hprint(line+7, 25, trap_regs->esi);
-	cprint(line+8, 20, "ebp: ");
-	hprint(line+8, 25, trap_regs->ebp);
-	cprint(line+9, 20, "esp: ");
-	hprint(line+9, 25, trap_regs->esp);
-
-	cprint(line+1, 38, "Stack:");
-	for (i=0; i<10; i++) {
-		hprint(line+2+i, 38, trap_regs->esp+(4*i));
-		hprint(line+2+i, 47, *(ulong*)(trap_regs->esp+(4*i)));
-		hprint(line+2+i, 57, trap_regs->esp+(4*(i+10)));
-		hprint(line+2+i, 66, *(ulong*)(trap_regs->esp+(4*(i+10))));
-	}
-
-	cprint(line+11, 0, "CS:EIP:                          ");
-	pp = (unsigned char *)trap_regs->eip;
-	for(i = 0; i < 9; i++) {
-		hprint2(line+11, 8+(3*i), pp[i], 2);
-	}
-
-	while(1) {
-		check_input();
-	}
-}
-
-void set_cache(int val) 
+void set_cache(int val)
 {
 	switch(val) {
 	case 0:
-		cache_off();	
+		cache_off();
 		break;
 	case 1:
 		cache_on();
 		break;
 	}
-}
-
-int get_key() {
-	int c;
-
-	c = inb(0x64);
-	if ((c & 1) == 0) {
-		if (serial_cons) {
-			int comstat;
-			comstat = serial_echo_inb(UART_LSR);
-			if (comstat & UART_LSR_DR) {
-				c = serial_echo_inb(UART_RX);
-				/* Pressing '.' has same effect as 'c'
-				   on a keyboard.
-				   Oct 056   Dec 46   Hex 2E   Ascii .
-				*/
-				return (ascii_to_keycode(c));
-			}
-		}
-		return(0);
-	}
-	c = inb(0x60);
-	return((c));
 }
 
 void check_input(void)
@@ -802,37 +633,6 @@ void ttyprint(int y, int x, const char *p)
 	serial_echo_print(p);
 }
 
-void serial_echo_init(void)
-{
-	int comstat, hi, lo, serial_div;
-	unsigned char lcr;	
-
-	/* read the Divisor Latch */
-	comstat = serial_echo_inb(UART_LCR);
-	serial_echo_outb(comstat | UART_LCR_DLAB, UART_LCR);
-	hi = serial_echo_inb(UART_DLM);
-	lo = serial_echo_inb(UART_DLL);
-	serial_echo_outb(comstat, UART_LCR);
-
-	/* now do hardwired init */
-	lcr = serial_parity | (serial_bits - 5);
-	serial_echo_outb(lcr, UART_LCR); /* No parity, 8 data bits, 1 stop */
-	serial_div = 115200 / serial_baud_rate;
-	serial_echo_outb(0x80|lcr, UART_LCR); /* Access divisor latch */
-	serial_echo_outb(serial_div & 0xff, UART_DLL);  /* baud rate divisor */
-	serial_echo_outb((serial_div >> 8) & 0xff, UART_DLM);
-	serial_echo_outb(lcr, UART_LCR); /* Done with divisor */
-
-	/* Prior to disabling interrupts, read the LSR and RBR
-	 * registers */
-	comstat = serial_echo_inb(UART_LSR); /* COM? LSR */
-	comstat = serial_echo_inb(UART_RX);	/* COM? RBR */
-	serial_echo_outb(0x00, UART_IER); /* Disable all interrupts */
-
-        clear_screen_buf();
-
-	return;
-}
 
 /*
  * Get_number of digits
@@ -852,25 +652,6 @@ int getnum(ulong val)
 		
 }
 
-
-void serial_echo_print(const char *p)
-{
-	if (!serial_cons) {
-		return;
-	}
-	/* Now, do each character */
-	while (*p) {
-		WAIT_FOR_XMITR;
-
-		/* Send the character out. */
-		serial_echo_outb(*p, UART_TX);
-		if(*p==10) {
-			WAIT_FOR_XMITR;
-			serial_echo_outb(13, UART_TX);
-		}
-		p++;
-	}
-}
 
 /* Except for multi-character key sequences this mapping
  * table is complete.  So it should not need to be updated
@@ -1075,7 +856,7 @@ void wait_keyup( void ) {
  *   ttyS0,115200
  *   ttyS0,9600e8
  */
-void serial_console_setup(char *param)
+void serial_console_setup(const char *param)
 {
 	char *option, *end;
 	unsigned long tty;
@@ -1115,6 +896,7 @@ void serial_console_setup(char *param)
 		goto save_baud_rate;  /* no more options given */
 
 	switch (toupper(*end)) {
+#if defined(__i386__)
 		case 'N':
 			parity = 0;
 			break;
@@ -1124,6 +906,7 @@ void serial_console_setup(char *param)
 		case 'E':
 			parity = UART_LCR_PARITY | UART_LCR_EPAR;
 			break;
+#endif
 		default:
 			/* Unknown parity */
 			return;

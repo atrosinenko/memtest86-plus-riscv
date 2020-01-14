@@ -5,15 +5,18 @@
  * Released under version 2 of the Gnu Public License.
  * By Chris Brady
  */
+#include "defs.h"
 #include "stdint.h"
 #include "test.h"
-#include "cpuid.h"
 
+#if defined(__i386__)
 extern struct cpu_ident cpu_id;
-
 static unsigned long mapped_win = 1;
+#endif
+
 void paging_off(void)
 {
+#if defined(__i386__)
 	if (!cpu_id.fid.bits.pae)
 		return;
 	__asm__ __volatile__ (
@@ -24,10 +27,12 @@ void paging_off(void)
 		: :
 		: "ax"
 		);
+#endif
 }
 
 static void paging_on(void *pdp)
 {
+#if defined(__i386__)
 	if (!cpu_id.fid.bits.pae)
 		return;
 	__asm__ __volatile__(
@@ -41,10 +46,12 @@ static void paging_on(void *pdp)
 		: "r" (pdp)
 		: "ax"
 		);
+#endif
 }
 
 static void paging_on_lm(void *pml)
 {
+#if defined(__i386__)
 	if (!cpu_id.fid.bits.pae)
 		return;
 	__asm__ __volatile__(
@@ -58,8 +65,27 @@ static void paging_on_lm(void *pml)
 		: "r" (pml)
 		: "ax"
 		);
+#endif
 }
 
+#if HAS_FLAT_MEM
+int map_page(unsigned long page)
+{
+	return 0;
+}
+void *mapping(unsigned long page_addr)
+{
+	return (void *)(page_addr << 12);
+}
+void *emapping(unsigned long page_addr)
+{
+	return mapping(page_addr - 1) + 0xffc;
+}
+unsigned long page_of(void *addr)
+{
+	return ((uintptr_t)addr) >> 12;
+}
+#else
 int map_page(unsigned long page)
 {
 	unsigned long i;
@@ -152,3 +178,4 @@ unsigned long page_of(void *addr)
 #endif	
 	return page;
 }
+#endif

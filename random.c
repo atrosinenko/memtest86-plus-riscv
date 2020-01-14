@@ -5,7 +5,6 @@
 /* number and carry packed within the same 32 bit integer.        */
 /******************************************************************/
 #include "stdint.h"
-#include "cpuid.h"
 #include "smp.h"
 
 /* Keep a separate seed for each CPU */

@@ -5,8 +5,13 @@
  * By Chris Brady
  */ 
 
+#include "arch.h"
+
+#define OPTIMIZED 0
+
 #define SETUPSECS	4		/* Number of setup sectors */
 
+#ifdef __i386__
 /*
  * Caution!! There is magic in the build process.  Read
  * README.build-process before you change anything.  
@@ -24,3 +29,4 @@
 #define KERNEL_DS	0x18			/* 32 bit segment adrs for data */
 #define REAL_CS		0x20			/* 16 bit segment adrs for code */
 #define REAL_DS		0x28			/* 16 bit segment adrs for data */
+#endif

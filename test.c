@@ -12,11 +12,9 @@
 #include "test.h"
 #include "config.h"
 #include "stdint.h"
-#include "cpuid.h"
 #include "smp.h"
-#include <sys/io.h>
+#include "io.h"
 
-extern struct cpu_ident cpu_id;
 extern volatile int    mstr_cpu;
 extern volatile int    run_cpus;
 extern volatile int    test;
@@ -78,15 +76,16 @@ void calculate_chunk(ulong** start, ulong** end, int me, int j, int makeMultiple
 void addr_tst1(int me)
 {
 	int i, j, k;
-	volatile ulong *p, *pt, *end;
-	ulong bad, mask, bank, p1;
+	volatile uint32_t *p, *pt, *end;
+	uint32_t bad, mask, p1;
+	ulong bank;
 
 	/* Test the global address bits */
 	for (p1=0, j=0; j<2; j++) {
         	hprint(LINE_PAT, COL_PAT, p1);
 
 		/* Set pattern in our lowest multiple of 0x20000 */
-		p = (ulong *)roundup((ulong)v->map[0].start, 0x1ffff);
+		p = (uint32_t *)roundup((ulong)v->map[0].start, 0x1ffff);
 		*p = p1;
 	
 		/* Now write pattern compliment */
@@ -95,7 +94,7 @@ void addr_tst1(int me)
 		for (i=0; i<100; i++) {
 			mask = 4;
 			do {
-				pt = (ulong *)((ulong)p | mask);
+				pt = (uint32_t *)((ulong)p | mask);
 				if (pt == p) {
 					mask = mask << 1;
 					continue;
@@ -105,7 +104,7 @@ void addr_tst1(int me)
 				}
 				*pt = p1;
 				if ((bad = *p) != ~p1) {
-					ad_err1((ulong *)p, (ulong *)mask,
+					ad_err1((uint32_t *)p, (uint32_t *)mask,
 						bad, ~p1);
 					i = 1000;
 				}
@@ -130,7 +129,7 @@ void addr_tst1(int me)
 		for (j=0; j<segs; j++) {
 			p = v->map[j].start;
 			/* Force start address to be a multiple of 256k */
-			p = (ulong *)roundup((ulong)p, bank - 1);
+			p = (uint32_t *)roundup((ulong)p, bank - 1);
 			end = v->map[j].end;
 			/* Redundant checks for overflow */
                         while (p < end && p > v->map[j].start && p != 0) {
@@ -140,7 +139,7 @@ void addr_tst1(int me)
 				for (i=0; i<50; i++) {
 					mask = 4;
 					do {
-						pt = (ulong *)
+						pt = (uint32_t *)
 						    ((ulong)p | mask);
 						if (pt == p) {
 							mask = mask << 1;
@@ -151,8 +150,8 @@ void addr_tst1(int me)
 						}
 						*pt = p1;
 						if ((bad = *p) != ~p1) {
-							ad_err1((ulong *)p,
-							    (ulong *)mask,
+							ad_err1((uint32_t *)p,
+							    (uint32_t *)mask,
 							    bad,~p1);
 							i = 200;
 						}
@@ -179,7 +178,7 @@ void addr_tst1(int me)
 void addr_tst2(int me)
 {
 	int j, done;
-	ulong *p, *pe, *end, *start;
+	uint32_t *p, *pe, *end, *start, bad;
 
         cprint(LINE_PAT, COL_PAT, "address ");
 
@@ -187,7 +186,7 @@ void addr_tst2(int me)
 	for (j=0; j<segs; j++) {
 		start = v->map[j].start;
 		end = v->map[j].end;
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start;
 		done = 0;
 		do {
@@ -208,11 +207,11 @@ void addr_tst2(int me)
 				break;
 			}
 
-/* Original C code replaced with hand tuned assembly code
- *			for (; p <= pe; p++) {
- *				*p = (ulong)p;
- *			}
- */
+#if !OPTIMIZED
+          for (; p <= pe; p++) {
+              *p = (ulong)p;
+          }
+#else
 			asm __volatile__ (
 				"jmp L91\n\t"
 				".p2align 4,,7\n\t"
@@ -224,6 +223,7 @@ void addr_tst2(int me)
 				"jb L90\n\t"
 				: : "D" (p), "d" (pe)
 			);
+#endif
 			p = pe + 1;
 		} while (!done);
 	}
@@ -232,7 +232,7 @@ void addr_tst2(int me)
 	for (j=0; j<segs; j++) {
 		start = v->map[j].start;
 		end = v->map[j].end;
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start;
 		done = 0;
 		do {
@@ -252,13 +252,13 @@ void addr_tst2(int me)
 			if (p == pe ) {
 				break;
 			}
-/* Original C code replaced with hand tuned assembly code
- *			for (; p <= pe; p++) {
- *				if((bad = *p) != (ulong)p) {
- *					ad_err2((ulong)p, bad);
- *				}
- *			}
- */
+#if !OPTIMIZED
+          for (; p <= pe; p++) {
+              if((bad = *p) != (uint32_t)p) {
+                  ad_err2((uint32_t)p, bad);
+              }
+          }
+#else
 			asm __volatile__ (
 				"jmp L95\n\t"
 				".p2align 4,,7\n\t"
@@ -287,6 +287,7 @@ void addr_tst2(int me)
 				: : "D" (p), "d" (pe)
 				: "ecx"
 			);
+#endif
 			p = pe + 1;
 		} while (!done);
 	}
@@ -301,15 +302,15 @@ void addr_tst2(int me)
 void movinvr(int me)
 {
 	int i, j, done, seed1, seed2;
-	ulong *p;
-	ulong *pe;
-	ulong *start,*end;
-	ulong xorVal;
-	//ulong num, bad;
+	uint32_t *p;
+	uint32_t *pe;
+	uint32_t *start,*end;
+	uint32_t xorVal;
+	uint32_t bad, num;
 
 	/* Initialize memory with initial sequence of random numbers.  */
-	if (cpu_id.fid.bits.rdtsc) {
-		asm __volatile__ ("rdtsc":"=a" (seed1),"=d" (seed2));
+	if (RDTSC_AVAILABLE()) {
+		RDTSC_LH(seed1, seed2);
 	} else {
 		seed1 = 521288629 + v->pass;
 		seed2 = 362436069 - v->pass;
@@ -340,13 +341,11 @@ void movinvr(int me)
 			if (p == pe ) {
 				break;
 			}
-/* Original C code replaced with hand tuned assembly code */
-/*
+#if !OPTIMIZED
 			for (; p <= pe; p++) {
 				*p = rand(me);
 			}
- */
-
+#else
                         asm __volatile__ (
                                 "jmp L200\n\t"
                                 ".p2align 4,,7\n\t"
@@ -362,6 +361,7 @@ void movinvr(int me)
                                 : : "D" (p), "b" (pe), "c" (me)
 				: "eax"
                         );
+#endif
 			p = pe + 1;
 		} while (!done);
 	}
@@ -393,19 +393,18 @@ void movinvr(int me)
 				if (p == pe ) {
 					break;
 				}
-/* Original C code replaced with hand tuned assembly code */
-				
-				/*for (; p <= pe; p++) {
+#if !OPTIMIZED
+				for (; p <= pe; p++) {
 					num = rand(me);
 					if (i) {
 						num = ~num;
 					}
 					if ((bad=*p) != num) {
-						error((ulong*)p, num, bad);
+						error((uint32_t*)p, num, bad);
 					}
 					*p = ~num;
-				}*/
-
+				}
+#else
 				if (i) {
 					xorVal = 0xffffffff;
 				} else {
@@ -482,6 +481,7 @@ void movinvr(int me)
 						 "d" (me)
 					: "eax", "ecx"
 				);
+#endif
 				p = pe + 1;
 			} while (!done);
 		}
@@ -492,10 +492,11 @@ void movinvr(int me)
  * Test all of memory using a "moving inversions" algorithm using the
  * pattern in p1 and it's complement in p2.
  */
-void movinv1 (int iter, ulong p1, ulong p2, int me)
+void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 {
 	int i, j, done;
-	ulong *p, *pe, len, *start, *end;
+	uint32_t *p, *pe, *start, *end, bad;
+	ulong len;
 
 	/* Display the current pattern */
         if (mstr_cpu == me) hprint(LINE_PAT, COL_PAT, p1);
@@ -527,18 +528,17 @@ void movinv1 (int iter, ulong p1, ulong p2, int me)
 				break;
 			}
 
-			//Original C code replaced with hand tuned assembly code
-			// seems broken
-			/*for (; p <= pe; p++) {
+#if !OPTIMIZED
+			for (; p <= pe; p++) {
 				*p = p1;
-			}*/
-
+			}
+#else
 			asm __volatile__ (
 				"rep\n\t" \
 				"stosl\n\t"
 				: : "c" (len), "D" (p), "a" (p1)
 			);
-
+#endif
 			p = pe + 1;
 		} while (!done);
 	}
@@ -570,15 +570,14 @@ void movinv1 (int iter, ulong p1, ulong p2, int me)
 					break;
 				}
 
-				// Original C code replaced with hand tuned assembly code 
-				// seems broken
- 				/*for (; p <= pe; p++) {
-					if ((bad=*p) != p1) {
- 						error((ulong*)p, p1, bad);
+#if !OPTIMIZED
+				for (; p <= pe; p++) {
+					if ((bad = *p) != p1) {
+ 						error((uint32_t*)p, p1, bad);
  					}
  					*p = p2;
- 				}*/
-
+				}
+#else
 				asm __volatile__ (
 					"jmp L2\n\t" \
 					".p2align 4,,7\n\t" \
@@ -612,6 +611,7 @@ void movinv1 (int iter, ulong p1, ulong p2, int me)
 					:: "a" (p1), "D" (p), "d" (pe), "b" (p2)
 					: "ecx"
 				);
+#endif
 				p = pe + 1;
 			} while (!done);
 		}
@@ -642,15 +642,14 @@ void movinv1 (int iter, ulong p1, ulong p2, int me)
 					break;
 				}
 
-				//Original C code replaced with hand tuned assembly code
-				// seems broken
-				/*do {
-					if ((bad=*p) != p2) {
-					error((ulong*)p, p2, bad);
+#if !OPTIMIZED
+				do {
+					if ((bad = *p) != p2) {
+					error((uint32_t*)p, p2, bad);
 					}
 					*p = p1;
-				} while (--p >= pe);*/
-
+				} while (--p >= pe);
+#else
 				asm __volatile__ (
 					"jmp L9\n\t"
 					".p2align 4,,7\n\t"
@@ -684,16 +683,17 @@ void movinv1 (int iter, ulong p1, ulong p2, int me)
 					:: "a" (p1), "D" (p), "d" (pe), "b" (p2)
 					: "ecx"
 				);
+#endif
 				p = pe - 1;
 			} while (!done);
 		}
 	}
 }
 
-void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
+void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off,int me)
 {
 	int i, j, k=0, n=0, done;
-	ulong *p, *pe, *start, *end, pat = 0, p3;
+	uint32_t *p, *pe, *start, *end, pat = 0, p3, bad;
 
 	p3 = sval << 31;
 	/* Display the current pattern */
@@ -725,19 +725,19 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
 				break;
 			}
 			/* Do a SPINSZ section of memory */
-/* Original C code replaced with hand tuned assembly code
- *			while (p <= pe) {
- *				*p = pat;
- *				if (++k >= 32) {
- *					pat = lb;
- *					k = 0;
- *				} else {
- *					pat = pat << 1;
- *					pat |= sval;
- *				}
- *				p++;
- *			}
- */
+#if !OPTIMIZED
+			while (p <= pe) {
+				*p = pat;
+				if (++k >= 32) {
+					pat = lb;
+					k = 0;
+				} else {
+					pat = pat << 1;
+					pat |= sval;
+				}
+				p++;
+			}
+#else
 			asm __volatile__ (
                                 "jmp L20\n\t"
                                 ".p2align 4,,7\n\t"
@@ -761,6 +761,7 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
                                 : "D" (p),"d" (pe),"b" (k),"c" (pat),
                                         "a" (sval), "S" (lb)
 			);
+#endif
 			p = pe + 1;
 		} while (!done);
 	}
@@ -793,24 +794,24 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
 				if (p == pe ) {
 					break;
 				}
-/* Original C code replaced with hand tuned assembly code
- *				while (1) {
- *					if ((bad=*p) != pat) {
- *						error((ulong*)p, pat, bad);
- *					}
- *					*p = ~pat;
- *					if (p >= pe) break;
- *					p++;
- *
- *					if (++k >= 32) {
- *						pat = lb;
- *						k = 0;
- *					} else {
- *						pat = pat << 1;
- *						pat |= sval;
- *					}
- *				}
- */
+#if !OPTIMIZED
+				while (1) {
+					if ((bad=*p) != pat) {
+						error((uint32_t*)p, pat, bad);
+					}
+					*p = ~pat;
+					if (p >= pe) break;
+					p++;
+
+					if (++k >= 32) {
+						pat = lb;
+						k = 0;
+					} else {
+						pat = pat << 1;
+						pat |= sval;
+					}
+				}
+#else
 				asm __volatile__ (
                                         "pushl %%ebp\n\t"
                                         "jmp L30\n\t"
@@ -864,6 +865,7 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
                                         : "D" (p),"d" (pe),"b" (k),"c" (pat),
                                                 "a" (sval), "S" (lb)
 				);
+#endif
 				p = pe + 1;
 			} while (!done);
 		}
@@ -903,23 +905,23 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
 				if (p == pe ) {
 					break;
 				}
-/* Original C code replaced with hand tuned assembly code
- *				while(1) {
- *					if ((bad=*p) != ~pat) {
- *						error((ulong*)p, ~pat, bad);
- *					}
- *					*p = pat;
+#if !OPTIMIZED
+				while(1) {
+					if ((bad=*p) != ~pat) {
+						error((uint32_t*)p, ~pat, bad);
+					}
+					*p = pat;
 					if (p >= pe) break;
 					p++;
- *					if (--k <= 0) {
- *						pat = hb;
- *						k = 32;
- *					} else {
- *						pat = pat >> 1;
- *						pat |= p3;
- *					}
- *				};
- */
+					if (--k <= 0) {
+						pat = hb;
+						k = 32;
+					} else {
+						pat = pat >> 1;
+						pat |= p3;
+					}
+				};
+#else
 				asm __volatile__ (
                                         "pushl %%ebp\n\t"
                                         "jmp L40\n\t"
@@ -973,6 +975,7 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
                                         : "D" (p),"d" (pe),"b" (k),"c" (pat),
                                                 "a" (p3), "S" (hb)
 				);
+#endif
 				p = pe - 1;
 			} while (!done);
 		}
@@ -982,12 +985,13 @@ void movinv32(int iter, ulong p1, ulong lb, ulong hb, int sval, int off,int me)
 /*
  * Test all of memory using modulo X access pattern.
  */
-void modtst(int offset, int iter, ulong p1, ulong p2, int me)
+void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 {
 	int j, k, l, done;
-	ulong *p;
-	ulong *pe;
-	ulong *start, *end;
+	uint32_t *p;
+	uint32_t *pe;
+	uint32_t *start, *end;
+	uint32_t bad;
 
 	/* Display the current pattern */
         if (mstr_cpu == me) {
@@ -1000,7 +1004,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 	for (j=0; j<segs; j++) {
 		calculate_chunk(&start, &end, me, j, 4);
 		end -= MOD_SZ;	/* adjust the ending address */
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start+offset;
 		done = 0;
 		do {
@@ -1020,11 +1024,11 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 			if (p == pe ) {
 				break;
 			}
-/* Original C code replaced with hand tuned assembly code
- *			for (; p <= pe; p += MOD_SZ) {
- *				*p = p1;
- *			}
- */
+#if !OPTIMIZED
+			for (; p <= pe; p += MOD_SZ) {
+				*p = p1;
+			}
+#else
 			asm __volatile__ (
 				"jmp L60\n\t" \
 				".p2align 4,,7\n\t" \
@@ -1037,6 +1041,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 				: "=D" (p)
 				: "D" (p), "d" (pe), "a" (p1)
 			);
+#endif
 		} while (!done);
 	}
 
@@ -1044,7 +1049,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 	for (l=0; l<iter; l++) {
 		for (j=0; j<segs; j++) {
 			calculate_chunk(&start, &end, me, j, 4);
-			pe = (ulong *)start;
+			pe = (uint32_t *)start;
 			p = start;
 			done = 0;
 			k = 0;
@@ -1065,16 +1070,16 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 				if (p == pe ) {
 					break;
 				}
-/* Original C code replaced with hand tuned assembly code
- *				for (; p <= pe; p++) {
- *					if (k != offset) {
- *						*p = p2;
- *					}
- *					if (++k > MOD_SZ-1) {
- *						k = 0;
- *					}
- *				}
- */
+#if !OPTIMIZED
+				for (; p <= pe; p++) {
+					if (k != offset) {
+						*p = p2;
+					}
+					if (++k > MOD_SZ-1) {
+						k = 0;
+					}
+				}
+#else
 				asm __volatile__ (
 					"jmp L50\n\t" \
 					".p2align 4,,7\n\t" \
@@ -1097,6 +1102,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 					: "D" (p), "d" (pe), "a" (p2),
 						"b" (k), "c" (offset)
 				);
+#endif
 				p = pe + 1;
 			} while (!done);
 		}
@@ -1105,7 +1111,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 	/* Now check every nth location */
 	for (j=0; j<segs; j++) {
 		calculate_chunk(&start, &end, me, j, 4);
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start+offset;
 		done = 0;
 		end -= MOD_SZ;	/* adjust the ending address */
@@ -1126,13 +1132,13 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 			if (p == pe ) {
 				break;
 			}
-/* Original C code replaced with hand tuned assembly code
- *			for (; p <= pe; p += MOD_SZ) {
- *				if ((bad=*p) != p1) {
- *					error((ulong*)p, p1, bad);
- *				}
- *			}
- */
+#if !OPTIMIZED
+			for (; p <= pe; p += MOD_SZ) {
+				if ((bad=*p) != p1) {
+					error((uint32_t*)p, p1, bad);
+				}
+			}
+#else
 			asm __volatile__ (
 				"jmp L70\n\t" \
 				".p2align 4,,7\n\t" \
@@ -1164,6 +1170,7 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 				: "D" (p), "d" (pe), "a" (p1)
 				: "ecx"
 			);
+#endif
 		} while (!done);
 	}
 }
@@ -1175,9 +1182,9 @@ void modtst(int offset, int iter, ulong p1, ulong p2, int me)
 void block_move(int iter, int me)
 {
 	int i, j, done;
-	ulong len;
-	ulong *p, *pe, pp;
-	ulong *start, *end;
+	ulong len, pp;
+	uint32_t *p, *pe;
+	uint32_t *start, *end;
 
         cprint(LINE_PAT, COL_PAT-2, "          ");
 
@@ -1211,6 +1218,8 @@ void block_move(int iter, int me)
 			}
 			len  = ((ulong)pe - (ulong)p) / 64;
 			//len++;
+#warning
+#if 0
 			asm __volatile__ (
 				"jmp L100\n\t"
 
@@ -1255,6 +1264,7 @@ void block_move(int iter, int me)
 				: "D" (p), "c" (len), "a" (1)
 				: "edx"
 			);
+#endif
 		} while (!done);
 	}
 	s_barrier();
@@ -1292,6 +1302,8 @@ void block_move(int iter, int me)
 			for(i=0; i<iter; i++) {
 				do_tick(me);
 				BAILR
+#warning
+#if 0
 				asm __volatile__ (
 					"cld\n"
 					"jmp L110\n\t"
@@ -1331,6 +1343,7 @@ void block_move(int iter, int me)
 					:: "g" (p), "g" (pp), "g" (len)
 					: "edi", "esi", "ecx"
 				);
+#endif
 			}
 			p = pe;
 		} while (!done);
@@ -1367,6 +1380,8 @@ void block_move(int iter, int me)
 				break;
 			}
 			pe-=2;	/* the last dwords to test are pe[0] and pe[1] */
+#warning
+#if 0
 			asm __volatile__ (
 				"jmp L120\n\t"
 
@@ -1403,6 +1418,7 @@ void block_move(int iter, int me)
 				: "D" (p), "d" (pe)
 				: "ecx"
 			);
+#endif
 		} while (!done);
 	}
 }
@@ -1410,11 +1426,11 @@ void block_move(int iter, int me)
 /*
  * Test memory for bit fade, fill memory with pattern.
  */
-void bit_fade_fill(ulong p1, int me)
+void bit_fade_fill(uint32_t p1, int me)
 {
 	int j, done;
-	ulong *p, *pe;
-	ulong *start,*end;
+	uint32_t *p, *pe;
+	uint32_t *start,*end;
 
 	/* Display the current pattern */
 	hprint(LINE_PAT, COL_PAT, p1);
@@ -1423,7 +1439,7 @@ void bit_fade_fill(ulong p1, int me)
 	for (j=0; j<segs; j++) {
 		start = v->map[j].start;
 		end = v->map[j].end;
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start;
 		done = 0;
 		do {
@@ -1452,17 +1468,17 @@ void bit_fade_fill(ulong p1, int me)
 	}
 }
 
-void bit_fade_chk(ulong p1, int me)
+void bit_fade_chk(uint32_t p1, int me)
 {
 	int j, done;
-	ulong *p, *pe, bad;
-	ulong *start,*end;
+	uint32_t *p, *pe, bad;
+	uint32_t *start,*end;
 
 	/* Make sure that nothing changed while sleeping */
 	for (j=0; j<segs; j++) {
 		start = v->map[j].start;
 		end = v->map[j].end;
-		pe = (ulong *)start;
+		pe = (uint32_t *)start;
 		p = start;
 		done = 0;
 		do {
@@ -1484,7 +1500,7 @@ void bit_fade_chk(ulong p1, int me)
 			}
  			for (; p < pe;) {
  				if ((bad=*p) != p1) {
-					error((ulong*)p, p1, bad);
+					error((uint32_t*)p, p1, bad);
 				}
 				p++;
 			}
@@ -1499,34 +1515,23 @@ void bit_fade_chk(ulong p1, int me)
 /* Sleep for N seconds */
 void sleep(long n, int flag, int me, int sms)
 {
-	ulong sh, sl, l, h, t, ip=0;
-
+	uint64_t st, ct;
+	ulong t, ip=0;
 	/* save the starting time */
-	asm __volatile__(
-		"rdtsc":"=a" (sl),"=d" (sh));
+	st = RDTSC();
 
 	/* loop for n seconds */
+	ulong deadline;
+	if (sms != 0) {
+		deadline = st + n * v->clks_msec;
+	} else {
+		deadline = st + n * v->clks_msec * 1000;
+	}
 	while (1) {
-		asm __volatile__(
-			"rep ; nop\n\t"
-			"rdtsc":"=a" (l),"=d" (h));
-		asm __volatile__ (
-			"subl %2,%0\n\t"
-			"sbbl %3,%1"
-			:"=a" (l), "=d" (h)
-			:"g" (sl), "g" (sh),
-			"0" (l), "1" (h));
-
-		if (sms != 0) {
-			t = h * ((unsigned)0xffffffff / v->clks_msec);
-			t += (l / v->clks_msec);
-		} else {
-			t = h * ((unsigned)0xffffffff / v->clks_msec) / 1000;
-			t += (l / v->clks_msec) / 1000;
-		}
+		ct = RDTSC();
 		
 		/* Is the time up? */
-		if (t >= n) {
+		if (t >= deadline) {
 			break;
 		}
 
@@ -1541,28 +1546,4 @@ void sleep(long n, int flag, int me, int sms)
 			ip = t;
 		}
 	}
-}
-
-/* Beep function */
-
-void beep(unsigned int frequency)
-{
-	
-	unsigned int count = 1193180 / frequency;
-
-	// Switch on the speaker
-	outb_p(inb_p(0x61)|3, 0x61);
-
-	// Set command for counter 2, 2 byte write
-	outb_p(0xB6, 0x43);
-
-	// Select desired Hz
-	outb_p(count & 0xff, 0x42);
-	outb((count >> 8) & 0xff, 0x42);
-
-	// Block for 100 microseconds
-	sleep(100, 0, 0, 1);
-
-	// Switch off the speaker
-	outb(inb_p(0x61)&0xFC, 0x61);
 }

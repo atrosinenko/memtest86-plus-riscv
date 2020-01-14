@@ -8,12 +8,10 @@
  * Released under version 2 of the Gnu Public License.
  * By Chris Brady
  */
- 
-#include "stdint.h"
+
 #include "stddef.h"
 #include "test.h"
 #include "defs.h"
-#include "cpuid.h"
 #include "smp.h"
 #include "config.h"
 #undef TEST_TIMES
@@ -24,22 +22,8 @@
  * preferably be a multiple of page size(4Kbytes)
 */
 
-extern struct	cpu_ident cpu_id;
-extern char	toupper(char c);
-extern int	isxdigit(char c);
-extern void	reboot();
-extern void	bzero();
-extern void	smp_set_ordinal(int me, int ord);
-extern int	smp_my_ord_num(int me);
-extern int	smp_ord_to_cpu(int me);
-extern void	get_cpuid();
-extern void	initialise_cpus();
-extern ulong	rand(int cpu);
-extern void	get_mem_speed(int cpu, int ncpus);
-extern void	rand_seed(unsigned int seed1, unsigned int seed2, int cpu);
-extern struct	barrier_s *barr;
-extern int 	num_cpus;
-extern int 	act_cpus;
+volatile ulong win0_start;	/* Start test address for window 0 */
+volatile ulong win1_end;		/* End address for relocation */
 
 static int	find_ticks_for_test(int test);
 void		find_ticks_for_pass(void);
@@ -91,8 +75,6 @@ static int	c_iter;
 ulong 		high_test_adr;
 volatile static int window;
 volatile static unsigned long win_next;
-volatile static ulong win0_start;	/* Start test address for window 0 */
-volatile static ulong win1_end;		/* End address for relocation */
 volatile static struct pmap winx;  	/* Window struct for mapping windows */
 
 /* Find the next selected test to run */
@@ -115,7 +97,7 @@ void next_test()
 }
 
 /* Set default values for all parameters */
-void set_defaults()
+void set_defaults(void)
 {
 	int i;
 
@@ -140,7 +122,7 @@ void set_defaults()
 	cpu_sel = 0;
 	v->printmode=PRINTMODE_ADDRESSES;
 	v->numpatn=0;
-	v->plim_lower = 0;
+	v->plim_lower = v->pmap[0].start;
 	v->plim_upper = v->pmap[v->msegs-1].end;
 	v->pass = 0;
 	v->msg_line = 0;
@@ -200,7 +182,7 @@ void btrace(int me, int line, char *msg, int wait, long v1, long v2)
 }
 
 /* Relocate the test to a new address. Be careful to not overlap! */
-static void run_at(unsigned long addr, int cpu)
+void run_at(unsigned long addr, int cpu)
 {
 	ulong *ja = (ulong *)(addr + startup_32 - _start);
 
@@ -224,7 +206,7 @@ static void run_at(unsigned long addr, int cpu)
  * is allocated, then the contents of the boot stack are copied, then
  * ESP is adjusted to point to the new stack.  
  */
-static void
+void
 switch_to_main_stack(unsigned cpu_num)
 {
 	extern uintptr_t boot_stack;
@@ -245,11 +227,7 @@ switch_to_main_stack(unsigned cpu_num)
 	} while ((uintptr_t *)src > (uintptr_t *)&boot_stack);
 
 	offs = (uint8_t *)&boot_stack_top - stackTop;
-	__asm__ __volatile__ (
-	"subl %%eax, %%esp" 
-		: /*no output*/
-		: "a" (offs) : "memory" 
-	);
+	ADJUST_STACK(offs);
 }
 
 void reloc_internal(int cpu)
@@ -272,10 +250,8 @@ void reloc(void)
 #define OLD_CL_MAGIC 0xA33F 
 #define OLD_CL_OFFSET_ADDR ((unsigned short*) MK_PTR(INITSEG,0x22))
 
-static void parse_command_line(void)
+void parse_command_line(const char *cp)
 {
-	long simple_strtoul(char *cmd, char *ptr, int base);
-	char *cp, dummy;
 	int i, j, k;
 
 	if (cmdline_parsed)
@@ -285,12 +261,6 @@ static void parse_command_line(void)
 	for (i=0; i<MAX_CPUS; i++) {
 		cpu_mask[i] = 1;
 	}
-
-	if (*OLD_CL_MAGIC_ADDR != OLD_CL_MAGIC)
-		return;
-
-	unsigned short offset = *OLD_CL_OFFSET_ADDR;
-	cp = MK_PTR(INITSEG, offset);
 
 	/* skip leading spaces */
 	while (*cp == ' ')
@@ -309,7 +279,7 @@ static void parse_command_line(void)
 		/* Limit number of CPUs */
 		if (!strncmp(cp, "maxcpus=", 8)) {
 			cp += 8;
-			maxcpus=(int)simple_strtoul(cp, &dummy, 10);
+			maxcpus=(int)simple_strtoul(cp, NULL, 10);
 		}
 		/* Run one pass and exit if there are no errors */
 		if (!strncmp(cp, "onepass", 7)) {
@@ -383,152 +353,12 @@ void clear_screen()
 	    cprint(9, 1,"CPU Line Message     Param #1 Param #2  CPU Line Message     Param #1 Param #2");
 	    cprint(10,1,"--- ---- ----------- -------- --------  --- ---- ----------- -------- --------");
 	}
-
 }
-/* This is the test entry point. We get here on statup and also whenever
- * we relocate. */
-void test_start(void)
+
+void main(int my_cpu_num, int my_cpu_ord)
 {
-	int my_cpu_num, my_cpu_ord, run;
-
-	/* If this is the first time here we are CPU 0 */
-	if (start_seq == 0) {
-		my_cpu_num = 0;
-	} else {
-		my_cpu_num = smp_my_cpu_num();
-	}
-	/* First thing, switch to main stack */
-	switch_to_main_stack(my_cpu_num);
-
-	/* First time (for this CPU) initialization */
-	if (start_seq < 2) {
-
-	    /* These steps are only done by the boot cpu */
-	    if (my_cpu_num == 0) {
-		my_cpu_ord = cpu_ord++;
-		smp_set_ordinal(my_cpu_num, my_cpu_ord);
-		parse_command_line();
-		clear_screen();
-		/* Initialize the barrier so the lock in btrace will work.
-		 * Will get redone later when we know how many CPUs we have */
-		barrier_init(1);
-		btrace(my_cpu_num, __LINE__, "Begin     ", 1, 0, 0);
-		/* Find memory size */
-		 mem_size();	/* must be called before initialise_cpus(); */
-		/* Fill in the CPUID table */
-		get_cpuid();
-		/* Startup the other CPUs */
-		start_seq = 1;
-		//initialise_cpus();
-		btrace(my_cpu_num, __LINE__, "BeforeInit", 1, 0, 0);
-		/* Draw the screen and get system information */
-	  init();
-
-		/* Set defaults and initialize variables */
-		set_defaults();
-	
-		/* Setup base address for testing, 1 MB */
-		win0_start = 0x100;
-
-		/* Set relocation address to 32Mb if there is enough
-		 * memory. Otherwise set it to 3Mb */
-		/* Large reloc addr allows for more testing overlap */
-	        if ((ulong)v->pmap[v->msegs-1].end > 0x2f00) {
-			high_test_adr = 0x2000000;
-	        } else {
-			high_test_adr = 0x300000;
-		} 
-		win1_end = (high_test_adr >> 12);
-
-		/* Adjust the map to not test the page at 939k,
-		 *  reserved for locks */
-		v->pmap[0].end--;
-
-		find_ticks_for_pass();
-       	    } else {
-		/* APs only, Register the APs */
-		btrace(my_cpu_num, __LINE__, "AP_Start  ", 0, my_cpu_num,
-			cpu_ord);
-		smp_ap_booted(my_cpu_num);
-		/* Asign a sequential CPU ordinal to each active cpu */
-		spin_lock(&barr->mutex);
-		my_cpu_ord = cpu_ord++;
-		smp_set_ordinal(my_cpu_num, my_cpu_ord);
-		spin_unlock(&barr->mutex);
-		btrace(my_cpu_num, __LINE__, "AP_Done   ", 0, my_cpu_num,
-			my_cpu_ord);
-	    }
-
-	} else {
-	    /* Unlock after a relocation */
-	    spin_unlock(&barr->mutex);
-	    /* Get the CPU ordinal since it is lost during relocation */
-	    my_cpu_ord = smp_my_ord_num(my_cpu_num);
-	    btrace(my_cpu_num, __LINE__, "Reloc_Done",0,my_cpu_num,my_cpu_ord);
-	}
-
-	/* A barrier to insure that all of the CPUs are done with startup */
-	barrier();
-	btrace(my_cpu_num, __LINE__, "1st Barr  ", 1, my_cpu_num, my_cpu_ord);
-	
-
-	/* Setup Memory Management and measure memory speed, we do it here
-	 * because we need all of the available CPUs */
-	if (start_seq < 2) {
-
-	   /* Enable floating point processing */
-	   if (cpu_id.fid.bits.fpu)
-        	__asm__ __volatile__ (
-		    "movl %%cr0, %%eax\n\t"
-		    "andl $0x7, %%eax\n\t"
-		    "movl %%eax, %%cr0\n\t"
-                    : :
-                    : "ax"
-                );
-	   if (cpu_id.fid.bits.sse)
-        	__asm__ __volatile__ (
-                    "movl %%cr4, %%eax\n\t"
-                    "orl $0x00000200, %%eax\n\t"
-                    "movl %%eax, %%cr4\n\t"
-                    : :
-                    : "ax"
-                );
-
-	    btrace(my_cpu_num, __LINE__, "Mem Mgmnt ", 1, cpu_id.fid.bits.pae, cpu_id.fid.bits.lm);
-	    /* Setup memory management modes */
-	    /* If we have PAE, turn it on */
-	    if (cpu_id.fid.bits.pae == 1) {
-		__asm__ __volatile__(
-                    "movl %%cr4, %%eax\n\t"
-                    "orl $0x00000020, %%eax\n\t"
-                    "movl %%eax, %%cr4\n\t"
-                    : :
-                    : "ax"
-                );
-        cprint(LINE_TITLE+1, COL_MODE, "(PAE Mode)");
-       	    }
-	    /* If this is a 64 CPU enable long mode */
-	    if (cpu_id.fid.bits.lm == 1) {
-		__asm__ __volatile__(
-		    "movl $0xc0000080, %%ecx\n\t"
-		    "rdmsr\n\t"
-		    "orl $0x00000100, %%eax\n\t"
-		    "wrmsr\n\t"
-		    : :
-		    : "ax", "cx"
-		);
-		cprint(LINE_TITLE+1, COL_MODE, "(X64 Mode)");
-            }
-	    /* Get the memory Speed with all CPUs */
-	    get_mem_speed(my_cpu_num, num_cpus);
-	}
-
-	/* Set the initialized flag only after all of the CPU's have
-	 * Reached the barrier. This insures that relocation has
-	 * been completed for each CPU. */
-	btrace(my_cpu_num, __LINE__, "Start Done", 1, 0, 0);
-	start_seq = 2;
-
+	int run;
+	const ulong zeroth_window = v->plim_lower;
 	/* Loop through all tests */
 	while (1) {
 	    /* If the restart flag is set all initial params */
@@ -569,9 +399,12 @@ void test_start(void)
 			btrace(my_cpu_num, __LINE__, "Sched_RelL", 1,0,0);
 			run_at(LOW_TEST_ADR, my_cpu_num);
 	        }
-		if (window == 0 && v->plim_lower >= win0_start) {
+#warning TODO
+#if 0
+		if (window == 0 && v->plim_lower >= zeroth_window + win0_start) {
 			window++;
 		}
+#endif
 		if (window == 0 && (ulong)&_start == LOW_TEST_ADR) {
 			btrace(my_cpu_num, __LINE__, "Sched_RelH", 1,0,0);
 			run_at(high_test_adr, my_cpu_num);
@@ -648,7 +481,7 @@ void test_start(void)
 		    /* Special case for relocation */
 		    case 0:
 			winx.start = 0;
-			winx.end = win1_end;
+			winx.end = win1_end - zeroth_window;
 			window++;
 			break;
 		    /* Special case for first segment */
@@ -831,12 +664,16 @@ int do_test(int my_ord)
 		/* Relocated so we need to test all selected lower memory */
 		v->map[0].start = mapping(v->plim_lower);
 		
+#ifdef __i386__
 		/* Good 'ol Legacy USB_WAR */
 		if (v->map[0].start < (ulong*)0x500) 
 		{
     	v->map[0].start = (ulong*)0x500;
 		}
-		
+#else
+#warning TODO reserved areas
+#endif
+
 		cprint(LINE_PAT, COL_MID+25, " R");
 	    } else {
 		cprint(LINE_PAT, COL_MID+25, "  ");
@@ -904,8 +741,8 @@ int do_test(int my_ord)
 	case 6: /* Random Data (test #6) */
 		/* Seed the random number generator */
 		if (my_ord == mstr_cpu) {
-		    if (cpu_id.fid.bits.rdtsc) {
-                	asm __volatile__ ("rdtsc":"=a" (sp1),"=d" (sp2));
+		    if (RDTSC_AVAILABLE()) {
+			RDTSC_LH(sp1, sp2);
         	    } else {
                 	sp1 = 521288629 + v->pass;
                 	sp2 = 362436069 - v->pass;
@@ -1192,8 +1029,8 @@ static int compute_segments(struct pmap win, int me)
 	int i, sg;
 
 	/* Compute the window I am testing memory in */
-	wstart = win.start;
-	wend = win.end;
+	wstart = win.start + v->plim_lower;
+	wend = win.end + v->plim_lower;
 	sg = 0;
 
 	/* Now reduce my window to the area of memory I want to test */

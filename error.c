@@ -7,21 +7,11 @@
 #include "stdint.h"
 #include "test.h"
 #include "config.h"
-#include "cpuid.h"
 #include "smp.h"
 #include "dmi.h"
 #include "controller.h"
 
-extern int dmi_err_cnts[MAX_DMI_MEMDEVS];
-extern int beepmode;
-extern short dmi_initialized;
-extern struct cpu_ident cpu_id;
-extern struct barrier_s *barr;
-extern int test_ticks, nticks;
-extern struct tseq tseq[];
-extern volatile int test;
 void poll_errors();
-extern int num_cpus;
 
 static void update_err_counts(void);
 static void print_err_counts(void);
@@ -578,21 +568,12 @@ void do_tick(int me)
 		dprint(LINE_HEADER+0, 25, pct, 3, 1);
 	}
 		
-
 	/* We can't do the elapsed time unless the rdtsc instruction
 	 * is supported
 	 */
-	if (cpu_id.fid.bits.rdtsc) {
-		asm __volatile__(
-			"rdtsc":"=a" (l),"=d" (h));
-		asm __volatile__ (
-			"subl %2,%0\n\t"
-			"sbbl %3,%1"
-			:"=a" (l), "=d" (h)
-			:"g" (v->startl), "g" (v->starth),
-			"0" (l), "1" (h));
-		t = h * ((unsigned)0xffffffff / v->clks_msec) / 1000;
-		t += (l / v->clks_msec) / 1000;
+	if (RDTSC_AVAILABLE()) {
+		uint64_t now = RDTSC();
+		t = (now - v->startt) / v->clks_msec / 1000;
 		i = t % 60;
 		j = i % 10;
 	

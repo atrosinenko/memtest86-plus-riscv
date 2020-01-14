@@ -224,6 +224,7 @@ void s_barrier();
 void barrier_init(int max);
 void s_barrier_init(int max);
 
+#if defined(__i386__)
 static inline void
 __GET_CPUID(int ax, uint32_t *regs)
 {
@@ -244,24 +245,7 @@ __GET_CPUID(int ax, uint32_t *regs)
    _cx = regs[2];                    \
    _dx = regs[3];                    \
 }
-
-/*
- * Checked against the Intel manual and GCC --hpreg
- *
- * volatile because the tsc always changes without the compiler knowing it.
- */
-static inline uint64_t
-RDTSC(void)
-{
-   uint64_t tim;
-
-   __asm__ __volatile__(
-      "rdtsc"
-      : "=A" (tim)
-   );
-
-   return tim;
-}
+#endif
 
 static inline uint64_t __GET_MSR(int cx)
 {
@@ -285,6 +269,7 @@ static inline uint64_t __GET_MSR(int cx)
 } while (0)
 #define OUTB(port, val) __GCC_OUT(b, b, port, val)
 
+#if HAS_SMP
 static inline void spin_wait(spinlock_t *lck)
 {
 	if (cpu_id.fid.bits.mon) {
@@ -361,6 +346,17 @@ static inline void spin_unlock(spinlock_t *lock)
 {
         asm volatile("movb $1,%0" : "+m" (lock->slock) :: "memory");
 }
+#else
+static inline void spin_wait(spinlock_t *lck)
+{
+}
+static inline void spin_lock(spinlock_t *lck)
+{
+}
+static inline void spin_unlock(spinlock_t *lock)
+{
+}
+#endif
 
 
 #endif /* _SMP_H_ */

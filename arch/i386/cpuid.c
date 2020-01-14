@@ -4,7 +4,7 @@
  *      Implements CPUID querying functions
  *
  */
-#include "stdin.h"
+#include "stdint.h"
 #include "cpuid.h"
 
 struct cpu_ident cpu_id;
