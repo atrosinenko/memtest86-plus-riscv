@@ -17,8 +17,8 @@ startup_32:
 	mv s1, a1
 
 # Zero .bss
-	la t1, _bss
-	la t2, _end
+	lla t1, _bss
+	lla t2, _end
 .zero_bss:
 	sw zero, 0(t1)
 	add t1, t1, 4
@@ -26,7 +26,7 @@ startup_32:
 .skip_first_time_setup:
 
 # Set trap handler
-	la t1, _trap_entry
+	lla t1, _trap_entry
 	csrw mtvec, t1
 
 # Relocate
