@@ -15,15 +15,20 @@ CPU may probably cause some damage.
 
 Build it with
 
-    make -f Makefile.arch ARCH=riscv
+    make -f Makefile.arch ARCH=riscv memtest.uboot
 
 In case some tools cannot be found (and this would probably be the case), edit `arch/riscv/config.mk`.
 
 You will get 
 * `memtest.bin` -- a raw image to be loaded into memory
 * `memtest_shared` -- an ELF shared object for use with GDB
+* `memtest.uboot` -- an U-Boot image pretending to be Linux kernel
 
-Now you need to somehow load it into memory. Place `memtest.bin` anywhere into your board RAM. Set registers as follows:
+For my board, boot command looks like this
+
+    run mmcsetup; run fdtsetup; fdt set /chosen bootargs "console=ttyS0"; fatload mmc 0:1 82000000 memtest.uboot; bootm fdt; bootm 82000000 - ${fdtaddr}
+
+For manual startup, place `memtest.bin` anywhere into your board RAM. Set registers as follows:
 * `$pc` -- the load address of `memtest.bin`
 * `$a0` -- hart id. Not used for now (SMP is NOT supported) but just for compatibility with other boot protocols
 * `$a1` -- load address of FDT, ask your bootloader for it :)

@@ -9,6 +9,10 @@ startup_32:
 	lla t0, startup_32
 	sd t0, initial_load_addr, t1
 
+# TODO Looks like U-Boot passes uint as a second argument
+	li t0, 0xffffffffL
+	and a1, a1, t0
+
 	mv s0, a0
 	mv s1, a1
 
