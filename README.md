@@ -4,6 +4,8 @@ This is a [MemTest86+](http://www.memtest.org/) v5.1 refactored to support multi
 
 **DISCLAIMER: USE AT YOUR OWN RISK. DO NOT USE AT ALL ON REAL HARDWARE UNLESS YOU KNOW WHAT YOU ARE DOING.**
 
+**WARNING:** This is a Work-in-Progress yet, so be prepared to false-positives and false-negatives.
+
 This repository includes the RISC-V port for my build of RocketChip for an FPGA board from AliExpress.
 This board has a regular DDR2-SODIMM slot, so testing memory can be not only a "model example".
 
@@ -30,12 +32,20 @@ For my board, boot command looks like this
 
 For manual startup, place `memtest.bin` anywhere into your board RAM. Set registers as follows:
 * `$pc` -- the load address of `memtest.bin`
-* `$a0` -- hart id. Not used for now (SMP is NOT supported) but just for compatibility with other boot protocols
+* `$a0` -- hart id. Not used for now (SMP is NOT yet supported) but just for compatibility with other boot protocols
 * `$a1` -- load address of FDT, ask your bootloader for it :)
-  * please note that the command line will be taken from `/chosen/bootargs` variable. Place `console=ttyS0` there, for example
+  * please note that the command line will be taken from `/chosen/bootargs` variable. Place something like `console=ttyS0` there
 
 ## Other info
 
 See [original README](README) for more details.
 
 License: GPL 2.
+
+## TODO
+
+* Restore `i386` build. It is not urgent at all, since there already exists hugely tested original MemTest. Even when this port would be updated, it will need large work on re-review and re-testing to be safe to run on real hardware.
+* Move all platform-specific code to `arch/`
+* Make RISC-V port SMP-aware. Now it does not support SMP and may even malfunction in multi-core setups.
+* Implement proper support for multi-arch optimized assembly in `test.c` and implement one for RISC-V.
+* Implement more information fetching from the RISC-V hardware and support for non-SiFive UART, RTC, etc. when needed
