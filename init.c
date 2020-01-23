@@ -10,10 +10,10 @@
  */
  
 
-#include "stdint.h"
-#include "stddef.h"
+#include <stdint.h>
+#include <stddef.h>
+#include "arch.h"
 #include "test.h"
-#include "defs.h"
 #include "config.h"
 #include "smp.h"
 #include "io.h"
@@ -38,7 +38,7 @@ int beepmode;
 void failsafe(int msec, int scs)
 {
 	int i;
-	uint64_t st, t;
+	uint64_t deadline;
 	unsigned char c;
 	volatile char *pp;
 	
@@ -59,15 +59,12 @@ void failsafe(int msec, int scs)
 	cprint(19, 15, "==> Press F2 to force Multi-Threading (SMP) <==");				
 	}
 
-	/* save the starting time */
-	st = RDTSC();
+	deadline = RDTSC() + ((uint64_t)v->clks_msec) * msec;
 
 	/* loop for n seconds */
 	while (1) {
-		t = (RDTSC() - st) / v->clks_msec;
-		
 		/* Is the time up? */
-		if (t >= msec) { break;	}
+		if (RDTSC() >= deadline) { break;	}
 		
 		/* Is expected Scan code pressed? */
 		c = get_key();
@@ -260,7 +257,6 @@ void init(void)
 		cprint(LINE_CPU, 26, "|  CPU Temp");
 		cprint(LINE_CPU+1, 26, "|      øC");
 	}
-	
 		beep(600);
 		beep(1000);
 	

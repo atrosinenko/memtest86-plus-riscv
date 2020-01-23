@@ -12,10 +12,8 @@
  */
 
 .text
-#define __ASSEMBLY__
 #include "defs.h"
 #include "config.h"
-#include "test.h"
 
 	.code32
 	.globl startup_32

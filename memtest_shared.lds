@@ -1,7 +1,6 @@
-OUTPUT_FORMAT("elf32-i386");
-OUTPUT_ARCH(i386);
-
+/* For historycal reasons... */
 ENTRY(startup_32); 
+
 SECTIONS {
 	. = 0;
 	.text : {
@@ -19,7 +18,16 @@ SECTIONS {
 	.dynstr     : { *(.dynstr) }
 	.hash       : { *(.hash) }
 	.gnu.hash   : { *(.gnu.hash) }
+
+	. = ALIGN(16);
+	_dynamic = .;
 	.dynamic    : { *(.dynamic) }
+
+	.rela.text    : { *(.rela.text   .rela.text.*) }
+	.rela.rodata  : { *(.rela.rodata .rela.rodata.*) }
+	.rela.data    : { *(.rela.data   .rela.data.*) }
+	.rela.got     : { *(.rela.got    .rela.got.*) }
+	.rela.plt     : { *(.rela.plt    .rela.plt.*) }
 
 	.rel.text    : { *(.rel.text   .rel.text.*) }
 	.rel.rodata  : { *(.rel.rodata .rel.rodata.*) }
@@ -49,5 +57,6 @@ SECTIONS {
 		. = ALIGN(256); 
 		_end = .;
 	}
-	/DISCARD/ : { *(*) }	
+/* Comment to pass through debug sections, etc. */
+	/DISCARD/ : { *(*) }
 }

@@ -1,8 +1,7 @@
-#include "defs.h"
-
 #include <stddef.h>
 #include <stdint.h>
 
+#include "arch.h"
 #include "test.h"
 #include "io.h"
 #include "extra.h"
@@ -16,6 +15,7 @@ typedef uint64_t fdt64_t;
 static char cur_path[256];
 
 struct barrier_s barrier_struct;
+
 uint64_t uart_base;
 char dummy_con[80*25*2];
 
@@ -236,10 +236,6 @@ void arch_init(void)
 	cpu_cache_speed();
 }
 
-static int start_seq;
-int my_cpu_num, my_cpu_ord;
-extern ulong high_test_adr;
-
 static void move_to_correct_addr(void)
 {
 	uintptr_t cur_start = (uintptr_t)&_start;
@@ -265,6 +261,7 @@ static void move_to_correct_addr(void)
 
 void riscv_entry(uint64_t hart_id, uint64_t fdt_address)
 {
+	int my_cpu_num = 0, my_cpu_ord = 0;
 	if (start_seq == 0) {
 		parse_fdt((uint8_t *)fdt_address);
 		serial_echo_init();

@@ -2,12 +2,14 @@
 #
 # Based on Makefile by Chris Brady
 
-all: clean memtest.bin
+all: clean
 
 ROOT_DIR=$(CURDIR)
 ARCH_DIR=$(ROOT_DIR)/arch/$(ARCH)
 
 include $(ARCH_DIR)/config.mk
+
+all: $(ARTIFACTS)
 
 VPATH=$(ARCH_DIR):.
 
@@ -22,11 +24,11 @@ OBJS= $(ASM_OBJS) reloc.o main.o test.o init.o lib.o patn.o screen_buffer.o \
 # Link it statically once so I know I don't have undefined
 # symbols and then link it dynamically so I have full
 # relocation information
-memtest_shared: memtest_shared.arch.lds Makefile.arch $(OBJS)
+memtest_shared: memtest_shared.lds Makefile.arch $(OBJS)
 	$(LD) $(LD_FLAGS) --warn-constructors --warn-common -static -T $< -o $@ $(OBJS)
 	$(LD) $(LD_FLAGS) -shared -Bsymbolic -T $< -o $@ $(OBJS)
 
-memtest.bin: memtest_shared
+memtest_shared.bin: memtest_shared
 	$(OBJCOPY) -O binary $< $@
 
 %.o: %.S config.h defs.h test.h

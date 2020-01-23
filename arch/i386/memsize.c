@@ -4,8 +4,8 @@
  * By Chris Brady
  */
 
+#include "arch.h"
 #include "test.h"
-#include "defs.h"
 #include "config.h"
 
 short e820_nr;

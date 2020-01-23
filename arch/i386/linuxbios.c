@@ -1,3 +1,5 @@
+#include "arch.h"
+
 #include "linuxbios_tables.h"
 #include "test.h"
 

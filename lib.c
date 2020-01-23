@@ -3,6 +3,10 @@
  * Released under version 2 of the Gnu Public License.
  * By Chris Brady
  */
+
+#include <stdint.h>
+
+#include "arch.h"
 #include "io.h"
 #if defined(__i386__)
 #include "serial.h"
@@ -10,7 +14,6 @@
 #include "test.h"
 #include "config.h"
 #include "screen_buffer.h"
-#include "stdint.h"
 #include "smp.h"
 
 

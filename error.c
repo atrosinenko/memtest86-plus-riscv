@@ -3,8 +3,10 @@
  * Released under version 2 of the Gnu Public License.
  * By Chris Brady
  */
-#include "stddef.h"
-#include "stdint.h"
+#include <stddef.h>
+#include <stdint.h>
+
+#include "arch.h"
 #include "test.h"
 #include "config.h"
 #include "smp.h"
@@ -572,8 +574,25 @@ void do_tick(int me)
 	 * is supported
 	 */
 	if (RDTSC_AVAILABLE()) {
-		uint64_t now = RDTSC();
-		t = (now - v->startt) / v->clks_msec / 1000;
+		uint64_t elapsed = RDTSC() - v->startt;
+		uint64_t divisor = ((uint64_t)v->clks_msec) * 1000;
+		{
+			// simulate division, supposing no overflow occurs
+			uint64_t shift, l, r, m;
+			for (shift = 0; (divisor << shift) < elapsed; shift += 1);
+			l = 0;
+			r = (1LLu << shift) + 1;
+			// elapsed < divisor * r
+			// So, binary serach in [0, r)
+			while (l < r - 1) {
+				m = l + ((r - l) >> 1);
+				if (divisor * m <= elapsed)
+					l = m;
+				else
+					r = m;
+			}
+			t = l;
+		}
 		i = t % 60;
 		j = i % 10;
 	

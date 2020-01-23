@@ -1,5 +1,8 @@
 #include "arch.h"
+#include "test.h"
+#include "cpuid.h"
 #include "globals.h"
+#include "io.h"
 
 unsigned long imc_type = 0;
 int tsc_invariable = 0;
@@ -714,7 +717,7 @@ void get_cache_size()
 
 /* Returns CPU clock in khz */
 ulong stlow, sthigh;
-static int cpuspeed(void)
+int cpuspeed(void)
 {
 	int loops;
 	ulong end_low, end_high;

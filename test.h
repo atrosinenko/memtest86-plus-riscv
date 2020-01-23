@@ -7,10 +7,11 @@
 #ifndef _TEST_H_
 #define _TEST_H_
 
-#include "arch.h"
+#include <stdint.h>
+
+#include "defs.h"
 
 typedef unsigned long ulong;
-#ifndef __ASSEMBLY__
 
 #define STACKSIZE       (8*1024)
 #define MAX_MEM         0x7FF00000      /* 8 TB */
@@ -193,6 +194,8 @@ struct tseq {
 	char *msg;
 };
 
+extern struct tseq tseq[];
+
 struct xadr {
 	ulong page;
 	ulong offset;
@@ -256,5 +259,4 @@ extern unsigned char _size, _pages;
 
 #include "globals.h"
 
-#endif /* __ASSEMBLY__ */
 #endif /* _TEST_H_ */

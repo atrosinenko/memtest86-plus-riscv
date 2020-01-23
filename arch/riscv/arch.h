@@ -5,17 +5,6 @@
 
 #include "config.h"
 
-#define HAS_SMP 0
-#define HAS_FLAT_MEM 1
-
-typedef char bool;
-#ifndef TRUE
-#define TRUE 1
-#endif
-#ifndef FALSE
-#define FALSE 0
-#endif
-
 extern uint64_t low_test_addr;
 #define LOW_TEST_ADR (low_test_addr)
 
@@ -39,9 +28,6 @@ extern char dummy_con[80*25*2];
 #define SCREEN_END_ADR (dummy_con + 80*25*2)
 
 #define assert(x) { if (!(x)) HALT(); }
-
-#define MAX_MEM_SEGMENTS 16
-#define MAX_DMI_MEMDEVS 4
 
 #define RDTSC_AVAILABLE() (1)
 #if UINTMAX == 0xffffffff

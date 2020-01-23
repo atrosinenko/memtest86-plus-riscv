@@ -9,9 +9,9 @@
  * By Chris Brady
  */
 
-#include "stddef.h"
+#include <stddef.h>
+#include "arch.h"
 #include "test.h"
-#include "defs.h"
 #include "smp.h"
 #include "config.h"
 #undef TEST_TIMES
@@ -48,7 +48,6 @@ struct tseq tseq[] = {
 
 volatile int    mstr_cpu;
 volatile int	run_cpus;
-volatile int	cpu_ord=0;
 int		maxcpus=MAX_CPUS;
 volatile short  cpu_sel;
 volatile short	cpu_mode;
@@ -243,12 +242,6 @@ void reloc(void)
 	bail++;
         reloc_pending = TRUE;
 }
-
-/* command line passing using the 'old' boot protocol */
-#define MK_PTR(seg,off) ((void*)(((unsigned long)(seg) << 4) + (off)))
-#define OLD_CL_MAGIC_ADDR ((unsigned short*) MK_PTR(INITSEG,0x20))
-#define OLD_CL_MAGIC 0xA33F 
-#define OLD_CL_OFFSET_ADDR ((unsigned short*) MK_PTR(INITSEG,0x22))
 
 void parse_command_line(const char *cp)
 {

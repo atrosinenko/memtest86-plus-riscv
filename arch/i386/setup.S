@@ -6,7 +6,6 @@
  * 1-Jan-96 Modified by Chris Brady for use as a boot/loader for memtest-86.
  */
 
-#define __ASSEMBLY__
 #include "defs.h"
 
 .code16

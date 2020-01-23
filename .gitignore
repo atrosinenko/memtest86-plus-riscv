@@ -1,5 +1,7 @@
 *.o
 *.s
 memtest_shared
+memtest_shared.bin
+memtest
 memtest.bin
 memtest.uboot

@@ -7,6 +7,8 @@
  * By Samuel DEMEULEMEESTER, sdemeule@memtest.org
  * http://www.x86-secret.com - http://www.memtest.org
  */
+
+#include "arch.h"
 #include "test.h"
 #include "screen_buffer.h"
 #include "dmi.h"
@@ -18,7 +20,6 @@ void performance();
 extern volatile short cpu_mode;
 extern volatile int test;
 extern void find_chunks();
-extern volatile short  start_seq;
 extern short restart_flag;
 extern short onepass;
 extern short btflag;

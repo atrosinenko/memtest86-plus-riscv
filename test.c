@@ -8,12 +8,15 @@
  * http://www.canardpc.com - http://www.memtest.org
  * Thanks to Passmark for calculate_chunk() and various comments !
  */
- 
+
+#include "arch.h"
 #include "test.h"
 #include "config.h"
 #include "stdint.h"
 #include "smp.h"
 #include "io.h"
+
+#include "test.inc.c"
 
 extern volatile int    mstr_cpu;
 extern volatile int    run_cpus;
@@ -1515,20 +1518,20 @@ void bit_fade_chk(uint32_t p1, int me)
 /* Sleep for N seconds */
 void sleep(long n, int flag, int me, int sms)
 {
-	uint64_t st, ct;
+	uint64_t st;
 	ulong t, ip=0;
 	/* save the starting time */
 	st = RDTSC();
 
 	/* loop for n seconds */
 	ulong deadline;
-	if (sms != 0) {
+	if (sms) {
 		deadline = st + n * v->clks_msec;
 	} else {
 		deadline = st + n * v->clks_msec * 1000;
 	}
 	while (1) {
-		ct = RDTSC();
+		t = RDTSC();
 		
 		/* Is the time up? */
 		if (t >= deadline) {

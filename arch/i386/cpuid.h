@@ -4,6 +4,9 @@
  *      implementation.
  */
 
+#ifndef CPUID_H
+#define CPUID_H
+
 #define CPUID_VENDOR_LENGTH     3               /* 3 GPRs hold vendor ID */
 #define CPUID_VENDOR_STR_LENGTH (CPUID_VENDOR_LENGTH * sizeof(uint32_t) + 1)
 #define CPUID_BRAND_LENGTH      12              /* 12 GPRs hold vendor ID */
@@ -194,3 +197,6 @@ struct cpuid4_ecx {
 	uint32_t	number_of_sets:32;
 };
 
+#define RDTSC_AVAILABLE() (cpu_id.fid.bits.rdtsc)
+
+#endif // CPUID_H

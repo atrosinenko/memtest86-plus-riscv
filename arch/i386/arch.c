@@ -1,8 +1,12 @@
+#include <sys/io.h>
+
 #include "arch.h"
+#include "globals.h"
+#include "smp.h"
 #include "test.h"
-#include "io.h"
 #include "cpuid.h"
 
+volatile int    cpu_ord=0;
 
 /* This is the test entry point. We get here on statup and also whenever
  * we relocate. */
@@ -62,7 +66,6 @@ void test_start(void)
 			high_test_adr = 0x300000;
 		}
 		win1_end = (high_test_adr >> 12);
-
 		/* Adjust the map to not test the page at 939k,
 		 *  reserved for locks */
 		v->pmap[0].end--;
@@ -289,7 +292,6 @@ void inter(struct eregs *trap_regs)
 
 void beep(unsigned int frequency)
 {
-
 	unsigned int count = 1193180 / frequency;
 
 	// Switch on the speaker

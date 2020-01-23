@@ -1,3 +1,5 @@
+#include "arch.h"
+#include "serial.h"
 
 static const short serial_base_ports[] = {0x3f8, 0x2f8};
 

@@ -16,5 +16,7 @@ ARCH_FLAGS= -march=$(ARCH_ID) -mabi=$(ABI_ID)
 ARCH_OBJS   = stubs.o arch.o
 ASM_SOURCES = head.S
 
+ARTIFACTS = memtest.uboot
+
 memtest.uboot: all
 	mkimage -A riscv -O linux -T kernel -C none -a 0x80000000 -e 0x80000000 -n memtest -d memtest.bin $@
