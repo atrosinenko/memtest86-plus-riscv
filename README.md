@@ -40,7 +40,7 @@ For manual startup, place `memtest_shared.bin` anywhere into your board RAM. Set
 
 See [original README](README) for more details.
 
-See [README.source-layout](README.source-layout) if you would like to implement another port.
+See [README.source-layout.md](README.source-layout.md) if you would like to implement another port.
 
 License: GPL 2.
 
