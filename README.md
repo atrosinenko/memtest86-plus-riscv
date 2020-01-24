@@ -1,5 +1,7 @@
 # MemTest86+ multi-arch version
 
+[![Build Status](https://travis-ci.org/atrosinenko/memtest86-plus-riscv.svg?branch=master)](https://travis-ci.org/atrosinenko/memtest86-plus-riscv)
+
 This is a [MemTest86+](http://www.memtest.org/) v5.1 refactored to support multiple hardware architectures.
 
 **DISCLAIMER: USE AT YOUR OWN RISK. DO NOT USE AT ALL ON REAL HARDWARE UNLESS YOU KNOW WHAT YOU ARE DOING.**

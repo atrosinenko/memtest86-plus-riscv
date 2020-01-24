@@ -7,7 +7,7 @@ ABI_ID   = lp64f
 LD_FLAGS = -m elf64lriscv
 
 AS=$(CROSS_PREFIX)as -march=$(ARCH_ID)
-CC=$(CROSS_PREFIX)gcc-9
+CC=$(CROSS_PREFIX)gcc
 LD=$(CROSS_PREFIX)ld
 OBJCOPY=$(CROSS_PREFIX)objcopy
 
