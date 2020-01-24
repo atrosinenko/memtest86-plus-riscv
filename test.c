@@ -238,12 +238,12 @@ void addr_tst2(int me)
 				break;
 			}
 
-#if !OPTIMIZED
-          for (; p <= pe; p++) {
-              *p = (ulong)p;
-          }
-#else
+#if OPTIMIZED
 			addr_tst2_snippet1(p, pe);
+#else
+			for (; p <= pe; p++) {
+				*p = (ulong)p;
+			}
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -273,14 +273,14 @@ void addr_tst2(int me)
 			if (p == pe ) {
 				break;
 			}
-#if !OPTIMIZED
-          for (; p <= pe; p++) {
-              if((bad = *p) != (uint32_t)p) {
-                  ad_err2((uint32_t)p, bad);
-              }
-          }
-#else
+#if OPTIMIZED
 			addr_tst2_snippet2(p, pe);
+#else
+			for (; p <= pe; p++) {
+				if((bad = *p) != (uint32_t)p) {
+					ad_err2((uint32_t)p, bad);
+				}
+			}
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -334,12 +334,12 @@ void movinvr(int me)
 			if (p == pe ) {
 				break;
 			}
-#if !OPTIMIZED
+#if OPTIMIZED
+			movinvr_snippet1(p, pe, me);
+#else
 			for (; p <= pe; p++) {
 				*p = rand(me);
 			}
-#else
-			movinvr_snippet1(p, pe, me);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -372,7 +372,9 @@ void movinvr(int me)
 				if (p == pe ) {
 					break;
 				}
-#if !OPTIMIZED
+#if OPTIMIZED
+				movinvr_snippet2(p, pe, i, me);
+#else
 				for (; p <= pe; p++) {
 					num = rand(me);
 					if (i) {
@@ -383,8 +385,6 @@ void movinvr(int me)
 					}
 					*p = ~num;
 				}
-#else
-				movinvr_snippet2(p, pe, i, me);
 #endif
 				p = pe + 1;
 			} while (!done);
@@ -432,12 +432,12 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 				break;
 			}
 
-#if !OPTIMIZED
+#if OPTIMIZED
+			movinv1_snippet1(len, p, pe, p1);
+#else
 			for (; p <= pe; p++) {
 				*p = p1;
 			}
-#else
-			movinv1_snippet1(len, p, pe, p1);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -470,15 +470,15 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 					break;
 				}
 
-#if !OPTIMIZED
+#if OPTIMIZED
+				movinv1_snippet2(len, p, pe, p1, p2);
+#else
 				for (; p <= pe; p++) {
 					if ((bad = *p) != p1) {
  						error((uint32_t*)p, p1, bad);
  					}
  					*p = p2;
 				}
-#else
-				movinv1_snippet2(len, p, pe, p1, p2);
 #endif
 				p = pe + 1;
 			} while (!done);
@@ -510,15 +510,15 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 					break;
 				}
 
-#if !OPTIMIZED
+#if OPTIMIZED
+				movinv1_snippet3(len, p, pe, p1, p2);
+#else
 				do {
 					if ((bad = *p) != p2) {
 					error((uint32_t*)p, p2, bad);
 					}
 					*p = p1;
 				} while (--p >= pe);
-#else
-				movinv1_snippet3(len, p, pe, p1, p2);
 #endif
 				p = pe - 1;
 			} while (!done);
@@ -561,7 +561,9 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				break;
 			}
 			/* Do a SPINSZ section of memory */
-#if !OPTIMIZED
+#if OPTIMIZED
+			movinv32_snippet1(&k, &pat, p, pe, sval, lb);
+#else
 			for ( ; p <= pe; ++p) {
 				*p = pat;
 				if (++k >= 32) {
@@ -572,8 +574,6 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 					pat |= sval;
 				}
 			}
-#else
-			movinv32_snippet1(&k, &pat, p, pe, sval, lb);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -607,7 +607,9 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				if (p == pe ) {
 					break;
 				}
-#if !OPTIMIZED
+#if OPTIMIZED
+				movinv32_snippet2(&k, &pat, p, pe, sval, lb);
+#else
 				for ( ; p <= pe; ++p) {
 					if ((bad=*p) != pat) {
 						error((uint32_t*)p, pat, bad);
@@ -622,8 +624,6 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 						pat |= sval;
 					}
 				}
-#else
-				movinv32_snippet2(&k, &pat, p, pe, sval, lb);
 #endif
 				p = pe + 1;
 			} while (!done);
@@ -664,7 +664,9 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				if (p == pe ) {
 					break;
 				}
-#if !OPTIMIZED
+#if OPTIMIZED
+				movinv32_snippet3(&k, &pat, p, pe, p3, hb);
+#else
 				for ( ; p <= pe; ++p) {
 					if ((bad=*p) != ~pat) {
 						error((uint32_t*)p, ~pat, bad);
@@ -678,8 +680,6 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 						pat |= p3;
 					}
 				};
-#else
-				movinv32_snippet3(&k, &pat, p, pe, p3, hb);
 #endif
 				p = pe - 1;
 			} while (!done);
@@ -729,12 +729,12 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 			if (p == pe ) {
 				break;
 			}
-#if !OPTIMIZED
+#if OPTIMIZED
+			modtst_snippet1(&p, pe, p1);
+#else
 			for (; p <= pe; p += MOD_SZ) {
 				*p = p1;
 			}
-#else
-			modtst_snippet1(&p, pe, p1);
 #endif
 		} while (!done);
 	}
@@ -764,7 +764,9 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 				if (p == pe ) {
 					break;
 				}
-#if !OPTIMIZED
+#if OPTIMIZED
+				modtst_snippet2(&k, p, pe, p2, offset);
+#else
 				for (; p <= pe; p++) {
 					if (k != offset) {
 						*p = p2;
@@ -773,8 +775,6 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 						k = 0;
 					}
 				}
-#else
-				modtst_snippet2(&k, p, pe, p2, offset);
 #endif
 				p = pe + 1;
 			} while (!done);
@@ -805,14 +805,14 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 			if (p == pe ) {
 				break;
 			}
-#if !OPTIMIZED
+#if OPTIMIZED
+			modtst_snippet3(&p, pe, p1);
+#else
 			for (; p <= pe; p += MOD_SZ) {
 				if ((bad=*p) != p1) {
 					error((uint32_t*)p, p1, bad);
 				}
 			}
-#else
-			modtst_snippet3(&p, pe, p1);
 #endif
 		} while (!done);
 	}
