@@ -18,5 +18,5 @@ ASM_SOURCES = head.S
 
 ARTIFACTS = memtest.uboot
 
-memtest.uboot: all
-	mkimage -A riscv -O linux -T kernel -C none -a 0x80000000 -e 0x80000000 -n memtest -d memtest.bin $@
+memtest.uboot: memtest_shared.bin
+	mkimage -A riscv -O linux -T kernel -C none -a 0x80000000 -e 0x80000000 -n memtest -d $< $@

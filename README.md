@@ -17,21 +17,21 @@ CPU may probably cause some damage.
 
 Build it with
 
-    make -f Makefile.arch ARCH=riscv memtest.uboot
+    make ARCH=riscv
 
 In case some tools cannot be found (and this would probably be the case), edit `arch/riscv/config.mk`.
 
 You will get 
-* `memtest.bin` -- a raw image to be loaded into memory
 * `memtest_shared` -- an ELF shared object for use with GDB
+* `memtest_shared.bin` -- a raw image to be loaded into memory
 * `memtest.uboot` -- an U-Boot image pretending to be Linux kernel
 
 For my board, boot command looks like this
 
     run mmcsetup; run fdtsetup; fdt set /chosen bootargs "console=ttyS0"; fatload mmc 0:1 82000000 memtest.uboot; bootm fdt; bootm 82000000 - ${fdtaddr}
 
-For manual startup, place `memtest.bin` anywhere into your board RAM. Set registers as follows:
-* `$pc` -- the load address of `memtest.bin`
+For manual startup, place `memtest_shared.bin` anywhere into your board RAM. Set registers as follows:
+* `$pc` -- the load address of `memtest_shared.bin`
 * `$a0` -- hart id. Not used for now (SMP is NOT yet supported) but just for compatibility with other boot protocols
 * `$a1` -- load address of FDT, ask your bootloader for it :)
   * please note that the command line will be taken from `/chosen/bootargs` variable. Place something like `console=ttyS0` there
@@ -40,11 +40,12 @@ For manual startup, place `memtest.bin` anywhere into your board RAM. Set regist
 
 See [original README](README) for more details.
 
+See [README.source-layout](README.source-layout) if you would like to implement another port.
+
 License: GPL 2.
 
 ## TODO
 
-* Restore `i386` build. It is not urgent at all, since there already exists hugely tested original MemTest. Even when this port would be updated, it will need large work on re-review and re-testing to be safe to run on real hardware.
 * Move all platform-specific code to `arch/`
 * Make RISC-V port SMP-aware. Now it does not support SMP and may even malfunction in multi-core setups.
 * Implement proper support for multi-arch optimized assembly in `test.c` and implement one for RISC-V.

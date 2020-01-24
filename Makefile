@@ -1,81 +1,49 @@
-# Makefile for MemTest86+
+# Makefile for MemTest86+ multi-arch version
 #
-# Author:		Chris Brady
-# Created:		January 1, 1996
+# Based on Makefile by Chris Brady
 
+all: clean
 
-#
-# Path for the floppy disk device
-#
-FDISK=/dev/fd0
+ROOT_DIR=$(CURDIR)
+ARCH_DIR=$(ROOT_DIR)/arch/$(ARCH)
 
-AS=as -32
-CC=gcc
+include $(ARCH_DIR)/config.mk
 
-CFLAGS= -Wall -march=i486 -m32 -O1 -fomit-frame-pointer -fno-builtin \
-	-ffreestanding -fPIC $(SMP_FL) -fno-stack-protector 
-	
-OBJS= head.o reloc.o main.o test.o init.o lib.o patn.o screen_buffer.o \
-      config.o cpuid.o linuxbios.o pci.o memsize.o spd.o error.o dmi.o controller.o \
-      smp.o vmem.o random.o
-      
+all: $(ARTIFACTS)
 
-all: clean memtest.bin memtest 
-		 scp memtest.bin root@192.168.0.12:/srv/tftp/mt86plus
+VPATH=$(ARCH_DIR):.
+
+CFLAGS= $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -fomit-frame-pointer -fno-builtin \
+	-ffreestanding $(SMP_FL) -fno-stack-protector -fPIC
+
+ASM_OBJS = $(subst .S,.o,$(ASM_SOURCES))
+
+OBJS= $(ASM_OBJS) reloc.o main.o test.o init.o lib.o patn.o screen_buffer.o \
+	config.o error.o smp.o vmem.o random.o $(ARCH_OBJS)
 
 # Link it statically once so I know I don't have undefined
 # symbols and then link it dynamically so I have full
 # relocation information
-memtest_shared: $(OBJS) memtest_shared.lds Makefile
-	$(LD) --warn-constructors --warn-common -static -T memtest_shared.lds \
-	 -o $@ $(OBJS) && \
-	$(LD) -shared -Bsymbolic -T memtest_shared.lds -o $@ $(OBJS)
+memtest_shared: memtest_shared.lds Makefile $(OBJS)
+	$(LD) $(LD_FLAGS) --warn-constructors --warn-common -static -T $< -o $@ $(OBJS)
+	$(LD) $(LD_FLAGS) -shared -Bsymbolic -T $< -o $@ $(OBJS)
 
 memtest_shared.bin: memtest_shared
-	objcopy -O binary $< memtest_shared.bin
+	$(OBJCOPY) -O binary $< $@
 
-memtest: memtest_shared.bin memtest.lds
-	$(LD) -s -T memtest.lds -b binary memtest_shared.bin -o $@
-
-head.s: head.S config.h defs.h test.h
-	$(CC) -E -traditional $< -o $@
-
-bootsect.s: bootsect.S config.h defs.h
-	$(CC) -E -traditional $< -o $@
-
-setup.s: setup.S config.h defs.h
-	$(CC) -E -traditional $< -o $@
-
-memtest.bin: memtest_shared.bin bootsect.o setup.o memtest.bin.lds
-	$(LD) -T memtest.bin.lds bootsect.o setup.o -b binary \
-	memtest_shared.bin -o memtest.bin
+%.o: %.S config.h defs.h test.h
+	$(CC) -I$(ARCH_DIR) -I$(ROOT_DIR) $(CFLAGS) -traditional $< -c -o $@
 
 reloc.o: reloc.c
-	$(CC) -c $(CFLAGS) -fno-strict-aliasing reloc.c
+	$(CC) $(CFLAGS) -fno-strict-aliasing -c $<
 
 test.o: test.c
-	$(CC) -c -Wall -march=i486 -m32 -O0 -fomit-frame-pointer -fno-builtin -ffreestanding test.c
+	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<
 
 random.o: random.c
-	$(CC) -c -Wall -march=i486 -m32 -O3 -fomit-frame-pointer -fno-builtin -ffreestanding random.c
+	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O3 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<
 	
-# rule for build number generation  
-build_number:
-	sh make_buildnum.sh  
-
 clean:
 	rm -f *.o *.s *.iso memtest.bin memtest memtest_shared \
-		memtest_shared.bin memtest.iso
+		memtest_shared.bin memtest.iso memtest.bin
 
-iso:
-	make all
-	./makeiso.sh
-
-install: all
-	dd <memtest.bin >$(FDISK) bs=8192
-
-install-precomp:
-	dd <precomp.bin >$(FDISK) bs=8192
-	
-dos: all
-	cat mt86+_loader memtest.bin > memtest.exe
