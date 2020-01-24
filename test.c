@@ -16,6 +16,8 @@
 #include "smp.h"
 #include "io.h"
 
+#define OPTIMIZED_SNIPPET static inline __attribute__((always_inline))
+
 #include "test.inc.c"
 
 extern volatile int    mstr_cpu;
@@ -215,17 +217,7 @@ void addr_tst2(int me)
               *p = (ulong)p;
           }
 #else
-			asm __volatile__ (
-				"jmp L91\n\t"
-				".p2align 4,,7\n\t"
-				"L90:\n\t"
-				"addl $4,%%edi\n\t"
-				"L91:\n\t"
-				"movl %%edi,(%%edi)\n\t"
-				"cmpl %%edx,%%edi\n\t"
-				"jb L90\n\t"
-				: : "D" (p), "d" (pe)
-			);
+			addr_tst2_snippet1(p, pe);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -349,21 +341,7 @@ void movinvr(int me)
 				*p = rand(me);
 			}
 #else
-                        asm __volatile__ (
-                                "jmp L200\n\t"
-                                ".p2align 4,,7\n\t"
-                                "L201:\n\t"
-                                "addl $4,%%edi\n\t"
-                                "L200:\n\t"
-				"pushl %%ecx\n\t" \
-                                "call rand\n\t"
-				"popl %%ecx\n\t" \
-				"movl %%eax,(%%edi)\n\t"
-                                "cmpl %%ebx,%%edi\n\t"
-                                "jb L201\n\t"
-                                : : "D" (p), "b" (pe), "c" (me)
-				: "eax"
-                        );
+			movinvr_snippet1(p, pe, me);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -536,11 +514,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 				*p = p1;
 			}
 #else
-			asm __volatile__ (
-				"rep\n\t" \
-				"stosl\n\t"
-				: : "c" (len), "D" (p), "a" (p1)
-			);
+			movinv1_snippet1(len, p, p1);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -740,29 +714,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				}
 			}
 #else
-			asm __volatile__ (
-                                "jmp L20\n\t"
-                                ".p2align 4,,7\n\t"
-                                "L923:\n\t"
-                                "addl $4,%%edi\n\t"
-                                "L20:\n\t"
-                                "movl %%ecx,(%%edi)\n\t"
-                                "addl $1,%%ebx\n\t"
-                                "cmpl $32,%%ebx\n\t"
-                                "jne L21\n\t"
-                                "movl %%esi,%%ecx\n\t"
-                                "xorl %%ebx,%%ebx\n\t"
-                                "jmp L22\n"
-                                "L21:\n\t"
-                                "shll $1,%%ecx\n\t"
-                                "orl %%eax,%%ecx\n\t"
-                                "L22:\n\t"
-                                "cmpl %%edx,%%edi\n\t"
-                                "jb L923\n\t"
-                                : "=b" (k), "=c" (pat)
-                                : "D" (p),"d" (pe),"b" (k),"c" (pat),
-                                        "a" (sval), "S" (lb)
-			);
+			movinv32_snippet1(&k, &pat, p, pe, sval, lb);
 #endif
 			p = pe + 1;
 		} while (!done);
@@ -1027,18 +979,7 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 				*p = p1;
 			}
 #else
-			asm __volatile__ (
-				"jmp L60\n\t" \
-				".p2align 4,,7\n\t" \
-
-				"L60:\n\t" \
-				"movl %%eax,(%%edi)\n\t" \
-				"addl $80,%%edi\n\t" \
-				"cmpl %%edx,%%edi\n\t" \
-				"jb L60\n\t" \
-				: "=D" (p)
-				: "D" (p), "d" (pe), "a" (p1)
-			);
+			modtst_snippet1(&p, pe, p1);
 #endif
 		} while (!done);
 	}
@@ -1217,51 +1158,8 @@ void block_move(int iter, int me)
 			len  = ((ulong)pe - (ulong)p) / 64;
 			//len++;
 #warning
-#if 0
-			asm __volatile__ (
-				"jmp L100\n\t"
-
-				".p2align 4,,7\n\t"
-				"L100:\n\t"
-
-				// First loop eax is 0x00000001, edx is 0xfffffffe
-				"movl %%eax, %%edx\n\t"
-				"notl %%edx\n\t"
-
-				// Set a block of 64-bytes	// First loop DWORDS are 
-				"movl %%eax,0(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,4(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,8(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,12(%%edi)\n\t"	// 0x00000001
-				"movl %%edx,16(%%edi)\n\t"	// 0xfffffffe
-				"movl %%edx,20(%%edi)\n\t"	// 0xfffffffe
-				"movl %%eax,24(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,28(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,32(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,36(%%edi)\n\t"	// 0x00000001
-				"movl %%edx,40(%%edi)\n\t"	// 0xfffffffe
-				"movl %%edx,44(%%edi)\n\t"	// 0xfffffffe
-				"movl %%eax,48(%%edi)\n\t"	// 0x00000001
-				"movl %%eax,52(%%edi)\n\t"	// 0x00000001
-				"movl %%edx,56(%%edi)\n\t"	// 0xfffffffe
-				"movl %%edx,60(%%edi)\n\t"	// 0xfffffffe
-
-				// rotate left with carry, 
-				// second loop eax is		 0x00000002
-				// second loop edx is (~eax) 0xfffffffd
-				"rcll $1, %%eax\n\t"		
-				
-				// Move current position forward 64-bytes (to start of next block)
-				"leal 64(%%edi), %%edi\n\t"
-
-				// Loop until end
-				"decl %%ecx\n\t"
-				"jnz  L100\n\t"
-
-				: "=D" (p)
-				: "D" (p), "c" (len), "a" (1)
-				: "edx"
-			);
+#if OPTIMIZED
+			block_move_snippet1(&p, len);
 #endif
 		} while (!done);
 	}
@@ -1301,7 +1199,7 @@ void block_move(int iter, int me)
 				do_tick(me);
 				BAILR
 #warning
-#if 0
+#if OPTIMIZED
 				asm __volatile__ (
 					"cld\n"
 					"jmp L110\n\t"
@@ -1310,7 +1208,7 @@ void block_move(int iter, int me)
 					"L110:\n\t"
 
 					//
-					// At the end of all this 
+					// At the end of all this
 					// - the second half equals the inital value of the first half
 					// - the first half is right shifted 32-bytes (with wrapping)
 					//
@@ -1379,7 +1277,7 @@ void block_move(int iter, int me)
 			}
 			pe-=2;	/* the last dwords to test are pe[0] and pe[1] */
 #warning
-#if 0
+#if OPTIMIZED
 			asm __volatile__ (
 				"jmp L120\n\t"
 
