@@ -196,6 +196,45 @@ OPTIMIZED_SNIPPET void movinv1_snippet2(ulong len, uint32_t *p, uint32_t *pe, ui
 	);
 }
 
+OPTIMIZED_SNIPPET void movinv1_snippet3(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2)
+{
+	(void)len;
+
+	asm __volatile__ (
+		"jmp L9\n\t"
+		".p2align 4,,7\n\t"
+		"L11:\n\t"
+		"subl $4, %%edi\n\t"
+		"L9:\n\t"
+		"movl (%%edi),%%ecx\n\t"
+		"cmpl %%ebx,%%ecx\n\t"
+		"jne L6\n\t"
+		"L10:\n\t"
+		"movl %%eax,(%%edi)\n\t"
+		"cmpl %%edi, %%edx\n\t"
+		"jne L11\n\t"
+		"jmp L7\n\t"
+
+		"L6:\n\t"
+		"pushl %%edx\n\t"
+		"pushl %%eax\n\t"
+		"pushl %%ecx\n\t"
+		"pushl %%ebx\n\t"
+		"pushl %%edi\n\t"
+		"call error\n\t"
+		"popl %%edi\n\t"
+		"popl %%ebx\n\t"
+		"popl %%ecx\n\t"
+		"popl %%eax\n\t"
+		"popl %%edx\n\t"
+		"jmp L10\n"
+
+		"L7:\n\t"
+		:: "a" (p1), "D" (p), "d" (pe), "b" (p2)
+		: "ecx"
+	);
+}
+
 OPTIMIZED_SNIPPET void movinv32_snippet1(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
 	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
@@ -294,6 +333,72 @@ OPTIMIZED_SNIPPET void movinv32_snippet2(
 	*p_pat = pat;
 }
 
+OPTIMIZED_SNIPPET void movinv32_snippet3(
+	int *p_k, uint32_t *p_pat, // inputs-outputs
+	uint32_t *p, uint32_t *pe, uint32_t p3, uint32_t hb // inputs only
+)
+{
+	int k = *p_k;
+	uint32_t pat = *p_pat;
+
+	asm __volatile__ (
+		"pushl %%ebp\n\t"
+		"jmp L40\n\t"
+		".p2align 4,,7\n\t"
+		"L49:\n\t"
+		"subl $4,%%edi\n\t"
+		"L40:\n\t"
+		"movl (%%edi),%%ebp\n\t"
+		"notl %%ecx\n\t"
+		"cmpl %%ecx,%%ebp\n\t"
+		"jne L44\n\t"
+
+		"L45:\n\t"
+		"notl %%ecx\n\t"
+		"movl %%ecx,(%%edi)\n\t"
+		"decl %%ebx\n\t"
+		"cmpl $0,%%ebx\n\t"
+		"jg L41\n\t"
+		"movl %%esi,%%ecx\n\t"
+		"movl $32,%%ebx\n\t"
+		"jmp L42\n"
+		"L41:\n\t"
+		"shrl $1,%%ecx\n\t"
+		"orl %%eax,%%ecx\n\t"
+		"L42:\n\t"
+		"cmpl %%edx,%%edi\n\t"
+		"ja L49\n\t"
+		"jmp L43\n\t"
+
+		"L44:\n\t" \
+		"pushl %%esi\n\t"
+		"pushl %%eax\n\t"
+		"pushl %%ebx\n\t"
+		"pushl %%edx\n\t"
+		"pushl %%ebp\n\t"
+		"pushl %%ecx\n\t"
+		"pushl %%edi\n\t"
+		"call error\n\t"
+		"popl %%edi\n\t"
+		"popl %%ecx\n\t"
+		"popl %%ebp\n\t"
+		"popl %%edx\n\t"
+		"popl %%ebx\n\t"
+		"popl %%eax\n\t"
+		"popl %%esi\n\t"
+		"jmp L45\n"
+
+		"L43:\n\t"
+		"popl %%ebp\n\t"
+		: "=b" (k), "=c" (pat)
+		: "D" (p),"d" (pe),"b" (k),"c" (pat),
+			"a" (p3), "S" (hb)
+	);
+
+	*p_k = k;
+	*p_pat = pat;
+}
+
 OPTIMIZED_SNIPPET void modtst_snippet1(
 	uint32_t **p_p, // input-output
 	uint32_t *pe, uint32_t p1 // inputs only
@@ -345,6 +450,48 @@ OPTIMIZED_SNIPPET void modtst_snippet2(
 			"b" (k), "c" (offset)
 	);
 	*p_k = k;
+}
+
+OPTIMIZED_SNIPPET void modtst_snippet3(
+	uint32_t **p_p, // input-output
+	uint32_t *pe, uint32_t p1 // inputs only
+)
+{
+	uint32_t *p = *p_p;
+
+	asm __volatile__ (
+		"jmp L70\n\t" \
+		".p2align 4,,7\n\t" \
+
+		"L70:\n\t" \
+		"movl (%%edi),%%ecx\n\t" \
+		"cmpl %%eax,%%ecx\n\t" \
+		"jne L71\n\t" \
+		"L72:\n\t" \
+		"addl $80,%%edi\n\t" \
+		"cmpl %%edx,%%edi\n\t" \
+		"jb L70\n\t" \
+		"jmp L73\n\t" \
+
+		"L71:\n\t" \
+		"pushl %%edx\n\t"
+		"pushl %%ecx\n\t"
+		"pushl %%eax\n\t"
+		"pushl %%edi\n\t"
+		"call error\n\t"
+		"popl %%edi\n\t"
+		"popl %%eax\n\t"
+		"popl %%ecx\n\t"
+		"popl %%edx\n\t"
+		"jmp L72\n"
+
+		"L73:\n\t" \
+		: "=D" (p)
+		: "D" (p), "d" (pe), "a" (p1)
+		: "ecx"
+	);
+
+	*p_p = p;
 }
 
 OPTIMIZED_SNIPPET void block_move_snippet1(uint32_t **p_p, ulong len)
@@ -438,4 +585,49 @@ OPTIMIZED_SNIPPET void block_move_snippet2(uint32_t *p, ulong pp, ulong len)
 		:: "g" (p), "g" (pp), "g" (len)
 		: "edi", "esi", "ecx"
 	);
+}
+
+
+OPTIMIZED_SNIPPET void block_move_snippet3(uint32_t **p_p, uint32_t *pe)
+{
+	uint32_t *p = *p_p;
+
+	asm __volatile__ (
+		"jmp L120\n\t"
+
+		".p2align 4,,7\n\t"
+		"L124:\n\t"
+		"addl $8,%%edi\n\t" // Next QWORD
+		"L120:\n\t"
+
+		// Compare adjacent DWORDS
+		"movl (%%edi),%%ecx\n\t"
+		"cmpl 4(%%edi),%%ecx\n\t"
+		"jnz L121\n\t" // Print error if they don't match
+
+		// Loop until end of block
+		"L122:\n\t"
+		"cmpl %%edx,%%edi\n\t"
+		"jb L124\n"
+		"jmp L123\n\t"
+
+		"L121:\n\t"
+		// eax not used so we don't need to save it as per cdecl
+		// ecx is used but not restored, however we don't need it's value anymore after this point
+		"pushl %%edx\n\t"
+		"pushl 4(%%edi)\n\t"
+		"pushl %%ecx\n\t"
+		"pushl %%edi\n\t"
+		"call error\n\t"
+		"popl %%edi\n\t"
+		"addl $8,%%esp\n\t"
+		"popl %%edx\n\t"
+		"jmp L122\n"
+		"L123:\n\t"
+		: "=D" (p)
+		: "D" (p), "d" (pe)
+		: "ecx"
+	);
+
+	*p_p = p;
 }
