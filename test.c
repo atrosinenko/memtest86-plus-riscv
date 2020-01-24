@@ -18,6 +18,32 @@
 
 #define OPTIMIZED_SNIPPET static inline __attribute__((always_inline))
 
+OPTIMIZED_SNIPPET void addr_tst2_snippet1(uint32_t *p, uint32_t *pe);
+OPTIMIZED_SNIPPET void addr_tst2_snippet2(uint32_t *p, uint32_t *pe);
+OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, int me);
+OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, int i, int me);
+OPTIMIZED_SNIPPET void movinv1_snippet1(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1);
+OPTIMIZED_SNIPPET void movinv1_snippet2(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
+OPTIMIZED_SNIPPET void movinv1_snippet3(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
+OPTIMIZED_SNIPPET void movinv32_snippet1(
+	int *p_k, uint32_t *p_pat, // inputs-outputs
+	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+);
+OPTIMIZED_SNIPPET void movinv32_snippet2(
+	int *p_k, uint32_t *p_pat, // inputs-outputs
+	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+);
+OPTIMIZED_SNIPPET void movinv32_snippet3(
+	int *p_k, uint32_t *p_pat, // inputs-outputs
+	uint32_t *p, uint32_t *pe, uint32_t p3, uint32_t hb // inputs only
+);
+OPTIMIZED_SNIPPET void modtst_snippet1(uint32_t **p_p, uint32_t *pe, uint32_t p1);
+OPTIMIZED_SNIPPET void modtst_snippet2(int *p_k, uint32_t *p, uint32_t *pe, uint32_t p2, int offset);
+OPTIMIZED_SNIPPET void modtst_snippet3(uint32_t **p_p,	uint32_t *pe, uint32_t p1);
+OPTIMIZED_SNIPPET void block_move_snippet1(uint32_t **p_p, ulong len);
+OPTIMIZED_SNIPPET void block_move_snippet2(uint32_t *p, ulong pp, ulong len);
+OPTIMIZED_SNIPPET void block_move_snippet3(uint32_t **p_p, uint32_t *pe);
+
 #include "test.inc.c"
 
 extern volatile int    mstr_cpu;
