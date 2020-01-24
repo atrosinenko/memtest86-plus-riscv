@@ -729,7 +729,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 			}
 			/* Do a SPINSZ section of memory */
 #if !OPTIMIZED
-			while (p <= pe) {
+			for ( ; p <= pe; ++p) {
 				*p = pat;
 				if (++k >= 32) {
 					pat = lb;
@@ -738,7 +738,6 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 					pat = pat << 1;
 					pat |= sval;
 				}
-				p++;
 			}
 #else
 			asm __volatile__ (
@@ -798,13 +797,11 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 					break;
 				}
 #if !OPTIMIZED
-				while (1) {
+				for ( ; p <= pe; ++p) {
 					if ((bad=*p) != pat) {
 						error((uint32_t*)p, pat, bad);
 					}
 					*p = ~pat;
-					if (p >= pe) break;
-					p++;
 
 					if (++k >= 32) {
 						pat = lb;
@@ -909,13 +906,11 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 					break;
 				}
 #if !OPTIMIZED
-				while(1) {
+				for ( ; p <= pe; ++p) {
 					if ((bad=*p) != ~pat) {
 						error((uint32_t*)p, ~pat, bad);
 					}
 					*p = pat;
-					if (p >= pe) break;
-					p++;
 					if (--k <= 0) {
 						pat = hb;
 						k = 32;
