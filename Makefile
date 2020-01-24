@@ -2,14 +2,21 @@
 #
 # Based on Makefile by Chris Brady
 
-all: clean
+.PNONY: all clean
+all:
 
 ROOT_DIR=$(CURDIR)
 ARCH_DIR=$(ROOT_DIR)/arch/$(ARCH)
 
+ifndef ARCH
+$(error ARCH variable is not set, see `arch/*` for existing names)
+endif
+
 include $(ARCH_DIR)/config.mk
 
-all: $(ARTIFACTS)
+all: clean $(ARTIFACTS)
+	@echo
+	@echo "==> Build artifacts:" $(ARTIFACTS)
 
 VPATH=$(ARCH_DIR):.
 
