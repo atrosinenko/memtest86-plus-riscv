@@ -269,6 +269,8 @@ void riscv_entry(uint64_t hart_id, uint64_t fdt_address)
 	}
 	switch_to_main_stack(0);
 
+	rdtsc_is_available = 1;
+
 	if (start_seq < 2) {
 		smp_set_ordinal(my_cpu_num, my_cpu_ord);
 		clear_screen();
@@ -318,7 +320,7 @@ void riscv_entry(uint64_t hart_id, uint64_t fdt_address)
 
 	move_to_correct_addr();
 
-	main(my_cpu_num, my_cpu_ord);
+	memtest_main(my_cpu_num, my_cpu_ord);
 }
 
 // From The RISC-V Instruction Set Manual, Volume II: Privileged Architecture, Document Version 20190608-Priv-MSU-Ratified”

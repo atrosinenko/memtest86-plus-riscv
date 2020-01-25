@@ -4,7 +4,9 @@
  *      Implements CPUID querying functions
  *
  */
-#include "stdint.h"
+#include <stdint.h>
+
+#include "globals.h"
 #include "cpuid.h"
 
 struct cpu_ident cpu_id;
@@ -84,4 +86,5 @@ void get_cpuid()
 	/* Turn off mon bit since monitor based spin wait may not be reliable */
 	cpu_id.fid.bits.mon = 0;
 
+	rdtsc_is_available = cpu_id.fid.bits.rdtsc;
 }

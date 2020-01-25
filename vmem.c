@@ -8,7 +8,7 @@
 
 #include <stdint.h>
 
-#include "defs.h"
+#include "test.h"
 
 #if HAS_FLAT_MEM
 int map_page(unsigned long page)

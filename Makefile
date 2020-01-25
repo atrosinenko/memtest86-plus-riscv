@@ -25,8 +25,10 @@ CFLAGS= $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -fomit-frame
 
 ASM_OBJS = $(subst .S,.o,$(ASM_SOURCES))
 
-OBJS= $(ASM_OBJS) reloc.o main.o test.o init.o lib.o patn.o screen_buffer.o \
-	config.o error.o smp.o vmem.o random.o $(ARCH_OBJS)
+COMMON_OBJS = common.o test.o random.o vmem.o
+
+OBJS = $(ASM_OBJS) reloc.o main.o init.o lib.o patn.o screen_buffer.o \
+	config.o error.o smp.o $(COMMON_OBJS) $(ARCH_OBJS)
 
 # Link it statically once so I know I don't have undefined
 # symbols and then link it dynamically so I have full
@@ -49,8 +51,15 @@ test.o: test.c
 
 random.o: random.c
 	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O3 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<
-	
+
+# Build it statically to simplify running in qemu-user on foreign architectures
+test-runner: test-runner.c $(COMMON_OBJS)
+	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -static $^ -o $@
+
+test: test-runner
+	$(RUN_WITH) ./test-runner
+
 clean:
 	rm -f *.o *.s *.iso memtest.bin memtest memtest_shared \
-		memtest_shared.bin memtest.iso memtest.bin
+		memtest_shared.bin memtest.iso memtest.bin test-runner
 

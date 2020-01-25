@@ -4,7 +4,8 @@
 /* x(n)=a*x(n-1)+carry mod 2^16 and y(n)=b*y(n-1)+carry mod 2^16, */
 /* number and carry packed within the same 32 bit integer.        */
 /******************************************************************/
-#include "stdint.h"
+#include <stdint.h>
+#include "config.h"
 #include "smp.h"
 
 /* Keep a separate seed for each CPU */
@@ -12,7 +13,7 @@
 static unsigned int SEED_X[MAX_CPUS*16];
 static unsigned int SEED_Y[MAX_CPUS*16];
 
-unsigned long rand (int cpu)
+unsigned long memtest_rand (int cpu)
 {
    static unsigned int a = 18000, b = 30903;
    int me;

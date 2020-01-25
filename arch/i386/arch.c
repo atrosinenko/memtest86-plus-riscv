@@ -154,7 +154,7 @@ void test_start(void)
 	 * been completed for each CPU. */
 	btrace(my_cpu_num, __LINE__, "Start Done", 1, 0, 0);
 	start_seq = 2;
-	main(my_cpu_num, my_cpu_ord);
+	memtest_main(my_cpu_num, my_cpu_ord);
 }
 
 char *codes[] = {

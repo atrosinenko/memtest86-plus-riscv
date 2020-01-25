@@ -29,7 +29,6 @@ extern char dummy_con[80*25*2];
 
 #define assert(x) { if (!(x)) HALT(); }
 
-#define RDTSC_AVAILABLE() (1)
 #if UINTMAX == 0xffffffff
 // 32-bit
 #define RDTSC_LH(low, high) { asm __volatile__ ("rdcycle %0\n" "rdcycleh %1\n" : "=r"(low), "=r"(high)); }

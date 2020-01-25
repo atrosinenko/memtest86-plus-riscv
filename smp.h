@@ -5,7 +5,6 @@
 #include "stdint.h"
 #include "defs.h"
 #include "arch-smp.h"
-#define MAX_CPUS 32
 
 unsigned smp_my_cpu_num();
 

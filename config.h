@@ -50,3 +50,5 @@
 /*	Normally enabled */
 #define USB_WAR
 
+#define MAX_CPUS 32
+

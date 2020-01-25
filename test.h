@@ -102,14 +102,16 @@ void hprint3(int y,int x, ulong val, int len);
 void xprint(int y,int x,ulong val);
 void aprint(int y,int x,ulong page);
 void dprint(int y,int x,ulong val,int len, int right);
+void next_test(void);
+int invoke_test(int my_ord);
 void movinv1(int iter, uint32_t p1, uint32_t p2, int cpu);
 void movinvr(int cpu);
 void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t mb, int sval, int off,
 	int cpu);
 void modtst(int off, int iter, uint32_t p1, uint32_t p2, int cpu);
 void error(ulong* adr, ulong good, ulong bad);
-void ad_err1(ulong *adr1, ulong *adr2, ulong good, ulong bad);
-void ad_err2(ulong *adr, ulong bad);
+void ad_err1(uint32_t *addr, uint32_t mask, uint32_t good, uint32_t bad);
+void ad_err2(uint32_t *addr, uint32_t bad);
 void do_tick();
 void init(void);
 struct eregs;

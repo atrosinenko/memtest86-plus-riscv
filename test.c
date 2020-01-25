@@ -55,7 +55,6 @@ extern struct tseq tseq[];
 extern void update_err_counts(void);
 extern void print_err_counts(void);
 void rand_seed( unsigned int seed1, unsigned int seed2, int me);
-ulong rand(int me);
 void poll_errors();
 
 static inline ulong roundup(ulong value, ulong mask)
@@ -135,7 +134,7 @@ void addr_tst1(int me)
 				}
 				*pt = p1;
 				if ((bad = *p) != ~p1) {
-					ad_err1((uint32_t *)p, (uint32_t *)mask,
+					ad_err1((uint32_t *)p, mask,
 						bad, ~p1);
 					i = 1000;
 				}
@@ -182,8 +181,7 @@ void addr_tst1(int me)
 						*pt = p1;
 						if ((bad = *p) != ~p1) {
 							ad_err1((uint32_t *)p,
-							    (uint32_t *)mask,
-							    bad,~p1);
+							    mask,bad,~p1);
 							i = 200;
 						}
 						mask = mask << 1;
@@ -338,7 +336,7 @@ void movinvr(int me)
 			movinvr_snippet1(p, pe, me);
 #else
 			for (; p <= pe; p++) {
-				*p = rand(me);
+				*p = memtest_rand(me);
 			}
 #endif
 			p = pe + 1;
@@ -376,7 +374,7 @@ void movinvr(int me)
 				movinvr_snippet2(p, pe, i, me);
 #else
 				for (; p <= pe; p++) {
-					num = rand(me);
+					num = memtest_rand(me);
 					if (i) {
 						num = ~num;
 					}

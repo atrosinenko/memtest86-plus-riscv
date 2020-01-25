@@ -4,12 +4,15 @@ dist: bionic
 
 jobs:
   include:
-  - env: BUILD_FOR_ARCH=i386
+  - env: MAKE_ENV="ARCH=i386"
     before_install:
     - sudo apt-get -y install gcc-multilib
-  - env: BUILD_FOR_ARCH=riscv
+  - env: MAKE_ENV="ARCH=riscv RUN_WITH=qemu-riscv64-static"
     before_install:
+    - sudo ./.travis/configure-apt.sh # Hack because of lack of support for RISC-V in qemu@bionic
     - sudo apt-get -y install gcc-riscv64-linux-gnu libc6-dev-riscv64-cross u-boot-tools
+    - sudo apt-get -y -t eoan install qemu-user-static
 
 script:
-- make ARCH=$BUILD_FOR_ARCH
+- make $MAKE_ENV
+- MUTE_PATTERNS= make test $MAKE_ENV

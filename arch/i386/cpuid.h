@@ -197,6 +197,4 @@ struct cpuid4_ecx {
 	uint32_t	number_of_sets:32;
 };
 
-#define RDTSC_AVAILABLE() (cpu_id.fid.bits.rdtsc)
-
 #endif // CPUID_H

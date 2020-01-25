@@ -13,6 +13,9 @@ typedef char bool;
 #define FALSE 0
 #endif
 
+extern bool rdtsc_is_available;
+#define RDTSC_AVAILABLE() (rdtsc_is_available)
+
 extern volatile short   start_seq;
 extern unsigned long high_test_adr;
 
@@ -27,16 +30,30 @@ extern unsigned char serial_bits;
 
 struct barrier_s;
 
+extern int c_iter;
 extern int dmi_err_cnts[MAX_DMI_MEMDEVS];
 extern int beepmode;
 extern short dmi_initialized;
 extern struct cpu_ident cpu_id;
 extern int test_ticks, nticks;
 extern volatile int test;
+extern int pass_flag;
 extern unsigned num_cpus;
 extern volatile int run_cpus;
 extern unsigned act_cpus;
 extern unsigned found_cpus;
+extern volatile short btflag;
+extern volatile short cpu_mode;
+extern volatile int bail;
+extern volatile int window;
+extern volatile unsigned long win_next;
+extern short restart_flag;
+extern int bitf_seq;
+extern volatile short cpu_sel;
+extern volatile int mstr_cpu;
+extern int ltest;
+extern short onepass;
+extern volatile int segs;
 
 extern short memsz_mode;
 extern int maxcpus;
@@ -55,7 +72,7 @@ int	smp_my_ord_num(int me);
 int	smp_ord_to_cpu(int me);
 void	get_cpuid();
 void	initialise_cpus();
-unsigned long	rand(int cpu);
+unsigned long	memtest_rand(int cpu);
 void	rand_seed(unsigned int seed1, unsigned int seed2, int cpu);
 
 unsigned long memspeed(unsigned long src, unsigned long len, int iter);
@@ -71,6 +88,6 @@ void arch_init(void);
 unsigned long simple_strtoul(const char *cp, char **endp, unsigned int base);
 
 void btrace(int me, int line, char *msg, int wait, long v1, long v2);
-void main(int my_cpu_num, int my_cpu_ord);
+void memtest_main(int my_cpu_num, int my_cpu_ord);
 
 #endif

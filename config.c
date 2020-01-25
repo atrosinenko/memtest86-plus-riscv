@@ -13,16 +13,9 @@
 #include "screen_buffer.h"
 #include "dmi.h"
 
-extern int bail, beepmode;
-extern struct tseq tseq[];
 extern short e820_nr;
 void performance();
-extern volatile short cpu_mode;
-extern volatile int test;
 extern void find_chunks();
-extern short restart_flag;
-extern short onepass;
-extern short btflag;
 
 extern void get_list(int x, int y, int len, char *buf);
 

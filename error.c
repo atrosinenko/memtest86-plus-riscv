@@ -68,7 +68,7 @@ void error(ulong *adr, ulong good, ulong bad)
  * Since this is strictly an address test, trying to create BadRAM
  * patterns does not make sense.  Just report the error.
  */
-void ad_err1(ulong *adr1, ulong *mask, ulong bad, ulong good)
+void ad_err1(uint32_t *adr1, uint32_t mask, uint32_t bad, uint32_t good)
 {
 	spin_lock(&barr->mutex);
 	common_err(adr1, good, bad, (ulong)mask, 1);
@@ -80,7 +80,7 @@ void ad_err1(ulong *adr1, ulong *mask, ulong bad, ulong good)
  * Since this type of address error can also report data errors go
  * ahead and generate BadRAM patterns.
  */
-void ad_err2(ulong *adr, ulong bad)
+void ad_err2(uint32_t *adr, uint32_t bad)
 {
 	spin_lock(&barr->mutex);
 	common_err(adr, (ulong)adr, bad, ((ulong)adr) ^ bad, 0);
@@ -454,7 +454,6 @@ void do_tick(int me)
 {
 	int i, j, pct;
 	ulong h, l, n, t;
-	extern int mstr_cpu;
 
 	if (++spin_idx[me] > 3) {
 		spin_idx[me] = 0;
