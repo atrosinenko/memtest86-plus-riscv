@@ -127,19 +127,49 @@ void error(ulong *addr, ulong good, ulong bad)
 
 // allocate in low half of address space
 #define VMEM_SZ (1 << 20)
-static uint8_t vmem[VMEM_SZ + (1 << 12)];
+static uint8_t vmem[VMEM_SZ + 1000000];
+static uint8_t *vmem_start, *vmem_end;
+
+#define WATERMARK_SIZE 64
 
 static void setup(void)
 {
 	// align at the next page boundary
-	uint8_t *vmem_start = mapping(page_of(&vmem) + 1);
-	uint8_t *vmem_end   = vmem_start + VMEM_SZ;
+	vmem_start = mapping(page_of(vmem + WATERMARK_SIZE) + 1);
+	vmem_end   = vmem_start + VMEM_SZ;
 	fprintf(stderr, "Memory allocated: %p - %p\n", vmem_start, vmem_end);
 	v->pmap[0].start = page_of(vmem_start);
 	v->pmap[0].end   = page_of(vmem_end);
 	segs = v->msegs = 1;
 	rdtsc_is_available = 1;
 	run_cpus = 1;
+}
+
+static void put_watermark(void)
+{
+	memset(vmem_start - WATERMARK_SIZE, 0xAA, WATERMARK_SIZE);
+	memset(vmem_end                   , 0xAA, WATERMARK_SIZE);
+}
+
+static void check_watermark(void)
+{
+	uint32_t *u32_start = (uint32_t *)vmem_start;
+	uint32_t *u32_end   = (uint32_t *)vmem_end;
+	uint32_t tmp;
+	for (int i = 1; i < WATERMARK_SIZE / 4; ++i) {
+		tmp = *(u32_start - i);
+		if (tmp != 0xAAAAAAAAu) {
+			fprintf(stderr, "Watermark overwritten (%d bytes before vmem): %08x\n", i * 4, tmp);
+			abort();
+		}
+	}
+	for (int i = 0; i < WATERMARK_SIZE / 4; ++i) {
+		tmp = *(u32_end + i);
+		if (tmp != 0xAAAAAAAAu) {
+			fprintf(stderr, "Watermark overwritten (%d bytes after vmem): %08x\n", i * 4, tmp);
+			abort();
+		}
+	}
 }
 
 int main(int argc, const char *argv[])
@@ -155,7 +185,7 @@ int main(int argc, const char *argv[])
 	v->map[0].end   = emapping(v->plim_upper);
 
 	fprintf(stderr, "Virtual range: 0x%lx - 0x%lx\n",
-		virt_addr(v->map[0].start), virt_addr(v->map[0].end));
+		virt_addr(vmem_start), virt_addr(vmem_end));
 
 	// Use at least two iterations, so snippet3() is checked against snippet2()
 	// in cases like this:
@@ -180,7 +210,9 @@ int main(int argc, const char *argv[])
 
 	while (pass_flag < 2) {
 		fprintf(stderr, "Pass #%d Test: #%2d %s\n", pass_flag, tseq[test].pat, tseq[test].msg);
+		put_watermark();
 		invoke_test(0);
+		check_watermark();
 		next_test();
 	}
 }
