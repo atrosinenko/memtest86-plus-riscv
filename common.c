@@ -345,13 +345,13 @@ int invoke_test(int my_ord)
 		break;
 
 	case 8: /* Moving inversions, 32 bit shifting pattern (test #8) */
-		for (i=0, p1=1; p1; p1=p1<<1, i++) {
+		for (i=0, p1=1; p1; p1 = (uint32_t)(p1<<1), i++) {
 			s_barrier();
-			movinv32(c_iter,p1, 1, 0x80000000, 0, i, my_ord);
+			movinv32(c_iter,p1, 1, 0x80000000u, 0, i, my_ord);
 			BAILOUT
 			s_barrier();
-			movinv32(c_iter,~p1, 0xfffffffe,
-				0x7fffffff, 1, i, my_ord);
+			movinv32(c_iter,~p1, 0xfffffffeu,
+				0x7fffffffu, 1, i, my_ord);
 			BAILOUT
 		}
 		break;

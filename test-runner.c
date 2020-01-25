@@ -118,8 +118,8 @@ void ad_err2(uint32_t *addr, uint32_t bad)
 
 void error(ulong *addr, ulong good, ulong bad)
 {
-	fprintf(stderr, "error:   addr = 0x%08lx    good = 0x%08lx    bad = 0x%08lx\n",
-		virt_addr(addr), good, bad);
+	fprintf(stderr, "error:   addr = 0x%08lx / 0x%08lx    good = 0x%08lx    bad = 0x%08lx\n",
+		addr, virt_addr(addr), good, bad);
 	if (!getenv("KEEP_GOING")) {
 		abort();
 	}

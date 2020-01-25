@@ -106,7 +106,7 @@ void next_test(void);
 int invoke_test(int my_ord);
 void movinv1(int iter, uint32_t p1, uint32_t p2, int cpu);
 void movinvr(int cpu);
-void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t mb, int sval, int off,
+void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t mb, uint32_t sval, int off,
 	int cpu);
 void modtst(int off, int iter, uint32_t p1, uint32_t p2, int cpu);
 void error(ulong* adr, ulong good, ulong bad);
@@ -178,8 +178,8 @@ struct pair {
 
 struct mmap {
 	ulong pbase_addr;
-	ulong *start;
-	ulong *end;
+	uint32_t *start;
+	uint32_t *end;
 };
 
 struct pmap {

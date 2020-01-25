@@ -82,7 +82,7 @@ static inline ulong roundup(ulong value, ulong mask)
 // me - this threads CPU number
 // j - index into v->map for current segment we are testing
 // align - number of bytes to align each block to
-void calculate_chunk(ulong** start, ulong** end, int me, int j, int makeMultipleOf)
+void calculate_chunk(uint32_t** start, uint32_t** end, int me, int j, int makeMultipleOf)
 {
 	ulong chunk;
 
@@ -102,15 +102,15 @@ void calculate_chunk(ulong** start, ulong** end, int me, int j, int makeMultiple
 		chunk = (chunk + (makeMultipleOf-1)) &  ~(makeMultipleOf-1);
 
 		// Figure out chunk boundaries
-		*start = (ulong*)((ulong)v->map[j].start+(chunk*me));
+		*start = (uint32_t*)((uintptr_t)v->map[j].start+(chunk*me));
 		/* Set end addrs for the highest CPU num to the
 			* end of the segment for rounding errors */
 		// Also rounds down to boundary if needed, may miss some ram but better than crashing or producing false errors.
 		// This rounding probably will never happen as the segments should be in 4096 bytes pages if I understand correctly.
 		if (me == mstr_cpu) {
-			*end = (ulong*)(v->map[j].end);
+			*end = (uint32_t*)(v->map[j].end);
 		} else {
-			*end = (ulong*)((ulong)(*start) + chunk);
+			*end = (uint32_t*)((uintptr_t)(*start) + chunk);
 			(*end)--;
 		}
 	}
@@ -540,7 +540,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 	}
 }
 
-void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off,int me)
+void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, uint32_t sval, int off,int me)
 {
 	int i, j, k=0, n=0, done;
 	uint32_t *p, *pe, *start, *end, pat = 0, p3, bad;
@@ -693,6 +693,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 						pat = pat >> 1;
 						pat |= p3;
 					}
+					if (p == 0) break; // TODO isn't this UB?
 				};
 #endif
 				p = pe - 1;
