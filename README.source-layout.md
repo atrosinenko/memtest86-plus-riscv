@@ -10,7 +10,7 @@ Generally, the layout of subdirectories of `arch/` is arbitrary with the excepti
 * `arch.h` is a header that is included into almost any C source
 * `defs.h` contains Assembly-safe **definitions**. They are expected to be `#include`d as early as possible.
 * `reloc.inc.c` is a snippet being included into `reloc.c`
-* `test.inc.c` is included inside the `test.c` and should contain support for test optimizations (usually, just Assembly listings), if any
+* `test.inc.c` is included inside the `test.c` and should contain support for test optimizations (usually, just Assembly listings), if any. No need to specify `-O0` anywhere because this is NOT a separate compilation unit - it is compiled as part of the top-level `test.c`
 
 Apart from these, there should usually exist one or more Assembly (*.S) files for setting up CPU context properly and one or more C source files for high-level platform-specific support. They are usually listed in `ASM_SOURCES` and `ARCH_OBJS` variables in `config.mk` (you would probably want to specify Assembly files in a proper order in the `ASM_SOURCES` variable).
 

@@ -681,7 +681,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 #if OPTIMIZED && HAS_OPT_MOVINV32 && OPTIMIZED_THIRD_SNIPPET
 				movinv32_snippet3(&k, &pat, p, pe, p3, hb);
 #else
-				for ( ; p <= pe; ++p) {
+				for ( ; p >= pe; --p) {
 					if ((bad=*p) != ~pat) {
 						error((uint32_t*)p, ~pat, bad);
 					}
@@ -822,7 +822,7 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 #if OPTIMIZED && HAS_OPT_MODTST && OPTIMIZED_THIRD_SNIPPET
 			modtst_snippet3(&p, pe, p1);
 #else
-			for (; p <= pe; p += MOD_SZ) {
+			for (; p < pe; p += MOD_SZ) {
 				if ((bad=*p) != p1) {
 					error((uint32_t*)p, p1, bad);
 				}

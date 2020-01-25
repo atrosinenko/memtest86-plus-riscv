@@ -154,6 +154,9 @@ int main(int argc, const char *argv[])
 	v->map[0].start =  mapping(v->plim_lower);
 	v->map[0].end   = emapping(v->plim_upper);
 
+	fprintf(stderr, "Virtual range: 0x%lx - 0x%lx\n",
+		virt_addr(v->map[0].start), virt_addr(v->map[0].end));
+
 	// Use at least two iterations, so snippet3() is checked against snippet2()
 	// in cases like this:
 	//
