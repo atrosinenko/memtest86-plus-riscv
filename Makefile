@@ -2,7 +2,7 @@
 #
 # Based on Makefile by Chris Brady
 
-.PNONY: all clean
+.PNONY: all test clean
 all:
 
 ROOT_DIR=$(CURDIR)
@@ -47,7 +47,7 @@ reloc.o: reloc.c
 	$(CC) $(CFLAGS) -fno-strict-aliasing -c $<
 
 test.o: test.c
-	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<
+	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) $(TEST_OPT_FLAGS) -ggdb3 -Wall -O0 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<
 
 random.o: random.c
 	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O3 -fPIC -fomit-frame-pointer -fno-builtin -ffreestanding -c $<

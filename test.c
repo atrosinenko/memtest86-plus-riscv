@@ -18,6 +18,22 @@
 
 #define OPTIMIZED_SNIPPET static inline __attribute__((always_inline))
 
+// Set to 0 to disable all optimizations
+#ifndef OPTIMIZED
+#   define OPTIMIZED 1
+#endif
+
+// Selectively disable snippets to check enabled snippets against plain C
+#ifndef OPTIMIZED_FIRST_SNIPPET
+#   define OPTIMIZED_FIRST_SNIPPET 1
+#endif
+#ifndef OPTIMIZED_SECOND_SNIPPET
+#   define OPTIMIZED_SECOND_SNIPPET 1
+#endif
+#ifndef OPTIMIZED_THIRD_SNIPPET
+#   define OPTIMIZED_THIRD_SNIPPET 1
+#endif
+
 OPTIMIZED_SNIPPET void addr_tst2_snippet1(uint32_t *p, uint32_t *pe);
 OPTIMIZED_SNIPPET void addr_tst2_snippet2(uint32_t *p, uint32_t *pe);
 OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, int me);
@@ -236,7 +252,7 @@ void addr_tst2(int me)
 				break;
 			}
 
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_ADDR_TST2 && OPTIMIZED_FIRST_SNIPPET
 			addr_tst2_snippet1(p, pe);
 #else
 			for (; p <= pe; p++) {
@@ -271,7 +287,7 @@ void addr_tst2(int me)
 			if (p == pe ) {
 				break;
 			}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_ADDR_TST2 && OPTIMIZED_SECOND_SNIPPET
 			addr_tst2_snippet2(p, pe);
 #else
 			for (; p <= pe; p++) {
@@ -332,7 +348,7 @@ void movinvr(int me)
 			if (p == pe ) {
 				break;
 			}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINVR && OPTIMIZED_FIRST_SNIPPET
 			movinvr_snippet1(p, pe, me);
 #else
 			for (; p <= pe; p++) {
@@ -370,7 +386,7 @@ void movinvr(int me)
 				if (p == pe ) {
 					break;
 				}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINVR && OPTIMIZED_SECOND_SNIPPET
 				movinvr_snippet2(p, pe, i, me);
 #else
 				for (; p <= pe; p++) {
@@ -430,7 +446,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 				break;
 			}
 
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_FIRST_SNIPPET
 			movinv1_snippet1(len, p, pe, p1);
 #else
 			for (; p <= pe; p++) {
@@ -468,7 +484,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 					break;
 				}
 
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_SECOND_SNIPPET
 				movinv1_snippet2(len, p, pe, p1, p2);
 #else
 				for (; p <= pe; p++) {
@@ -508,7 +524,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 					break;
 				}
 
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_THIRD_SNIPPET
 				movinv1_snippet3(len, p, pe, p1, p2);
 #else
 				do {
@@ -559,7 +575,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				break;
 			}
 			/* Do a SPINSZ section of memory */
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV32 && OPTIMIZED_FIRST_SNIPPET
 			movinv32_snippet1(&k, &pat, p, pe, sval, lb);
 #else
 			for ( ; p <= pe; ++p) {
@@ -605,7 +621,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				if (p == pe ) {
 					break;
 				}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV32 && OPTIMIZED_SECOND_SNIPPET
 				movinv32_snippet2(&k, &pat, p, pe, sval, lb);
 #else
 				for ( ; p <= pe; ++p) {
@@ -662,7 +678,7 @@ void movinv32(int iter, uint32_t p1, uint32_t lb, uint32_t hb, int sval, int off
 				if (p == pe ) {
 					break;
 				}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MOVINV32 && OPTIMIZED_THIRD_SNIPPET
 				movinv32_snippet3(&k, &pat, p, pe, p3, hb);
 #else
 				for ( ; p <= pe; ++p) {
@@ -727,7 +743,7 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 			if (p == pe ) {
 				break;
 			}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MODTST && OPTIMIZED_FIRST_SNIPPET
 			modtst_snippet1(&p, pe, p1);
 #else
 			for (; p <= pe; p += MOD_SZ) {
@@ -762,7 +778,7 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 				if (p == pe ) {
 					break;
 				}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MODTST && OPTIMIZED_SECOND_SNIPPET
 				modtst_snippet2(&k, p, pe, p2, offset);
 #else
 				for (; p <= pe; p++) {
@@ -803,7 +819,7 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 			if (p == pe ) {
 				break;
 			}
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_MODTST && OPTIMIZED_THIRD_SNIPPET
 			modtst_snippet3(&p, pe, p1);
 #else
 			for (; p <= pe; p += MOD_SZ) {
@@ -815,6 +831,12 @@ void modtst(int offset, int iter, uint32_t p1, uint32_t p2, int me)
 		} while (!done);
 	}
 }
+
+#if !(OPTIMIZED_FIRST_SNIPPET && OPTIMIZED_SECOND_SNIPPET && OPTIMIZED_THIRD_SNIPPET)
+// no unoptimized versions
+#undef HAS_OPT_BLOCK_MOVE
+#define HAS_OPT_BLOCK_MOVE 0
+#endif
 
 /*
  * Test memory using block moves 
@@ -860,7 +882,7 @@ void block_move(int iter, int me)
 			len  = ((ulong)pe - (ulong)p) / 64;
 			//len++;
 #warning
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_BLOCK_MOVE && OPTIMIZED_FIRST_SNIPPET
 			block_move_snippet1(&p, len);
 #endif
 		} while (!done);
@@ -901,7 +923,7 @@ void block_move(int iter, int me)
 				do_tick(me);
 				BAILR
 #warning
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_BLOCK_MOVE && OPTIMIZED_SECOND_SNIPPET
 			block_move_snippet2(p, pp, len);
 #endif
 			}
@@ -941,7 +963,7 @@ void block_move(int iter, int me)
 			}
 			pe-=2;	/* the last dwords to test are pe[0] and pe[1] */
 #warning
-#if OPTIMIZED
+#if OPTIMIZED && HAS_OPT_BLOCK_MOVE && OPTIMIZED_THIRD_SNIPPET
 			block_move_snippet3(&p, pe);
 #endif
 		} while (!done);

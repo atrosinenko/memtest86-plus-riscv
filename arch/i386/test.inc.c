@@ -1,4 +1,9 @@
-#define OPTIMIZED 1
+#define HAS_OPT_ADDR_TST2  1
+#define HAS_OPT_MOVINVR    1
+#define HAS_OPT_MOVINV1    1
+#define HAS_OPT_MOVINV32   1
+#define HAS_OPT_MODTST     1
+#define HAS_OPT_BLOCK_MOVE 1
 
 OPTIMIZED_SNIPPET void addr_tst2_snippet1(uint32_t *p, uint32_t *pe)
 {
