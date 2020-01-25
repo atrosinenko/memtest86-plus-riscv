@@ -54,7 +54,7 @@ random.o: random.c
 
 # Build it statically to simplify running in qemu-user on foreign architectures
 test-runner: test-runner.c $(COMMON_OBJS)
-	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -static $^ -o $@
+	$(CC) $(ARCH_CFLAGS) -I$(ARCH_DIR) -I$(ROOT_DIR) -ggdb3 -Wall -O0 -fPIC -static $^ -o $@
 
 test: test-runner
 	$(RUN_WITH) ./test-runner

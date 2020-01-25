@@ -36,18 +36,18 @@
 
 OPTIMIZED_SNIPPET void addr_tst2_snippet1(uint32_t *p, uint32_t *pe);
 OPTIMIZED_SNIPPET void addr_tst2_snippet2(uint32_t *p, uint32_t *pe);
-OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, int me);
-OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, int i, int me);
-OPTIMIZED_SNIPPET void movinv1_snippet1(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1);
-OPTIMIZED_SNIPPET void movinv1_snippet2(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
-OPTIMIZED_SNIPPET void movinv1_snippet3(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
+OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, unsigned me);
+OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, uint32_t xorVal, unsigned me);
+OPTIMIZED_SNIPPET void movinv1_snippet1(uint32_t *p, uint32_t *pe, uint32_t p1);
+OPTIMIZED_SNIPPET void movinv1_snippet2(uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
+OPTIMIZED_SNIPPET void movinv1_snippet3(uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2);
 OPTIMIZED_SNIPPET void movinv32_snippet1(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
-	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+	uint32_t *p, uint32_t *pe, uint32_t sval, uint32_t lb // inputs only
 );
 OPTIMIZED_SNIPPET void movinv32_snippet2(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
-	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+	uint32_t *p, uint32_t *pe, uint32_t sval, uint32_t lb // inputs only
 );
 OPTIMIZED_SNIPPET void movinv32_snippet3(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
@@ -363,6 +363,7 @@ void movinvr(int me)
 	 * write the complement for each memory location.
 	 */
 	for (i=0; i<2; i++) {
+		uint32_t xorVal = i ? 0xffffffffu : 0;
 		rand_seed(seed1, seed2, me);
 		for (j=0; j<segs; j++) {
 			calculate_chunk(&start, &end, me, j, 4);
@@ -387,7 +388,7 @@ void movinvr(int me)
 					break;
 				}
 #if OPTIMIZED && HAS_OPT_MOVINVR && OPTIMIZED_SECOND_SNIPPET
-				movinvr_snippet2(p, pe, i, me);
+				movinvr_snippet2(p, pe, xorVal, me);
 #else
 				for (; p <= pe; p++) {
 					num = memtest_rand(me);
@@ -447,7 +448,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 			}
 
 #if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_FIRST_SNIPPET
-			movinv1_snippet1(len, p, pe, p1);
+			movinv1_snippet1(p, pe, p1);
 #else
 			for (; p <= pe; p++) {
 				*p = p1;
@@ -485,7 +486,7 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 				}
 
 #if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_SECOND_SNIPPET
-				movinv1_snippet2(len, p, pe, p1, p2);
+				movinv1_snippet2(p, pe, p1, p2);
 #else
 				for (; p <= pe; p++) {
 					if ((bad = *p) != p1) {
@@ -525,11 +526,11 @@ void movinv1 (int iter, uint32_t p1, uint32_t p2, int me)
 				}
 
 #if OPTIMIZED && HAS_OPT_MOVINV1 && OPTIMIZED_THIRD_SNIPPET
-				movinv1_snippet3(len, p, pe, p1, p2);
+				movinv1_snippet3(p, pe, p1, p2);
 #else
 				do {
 					if ((bad = *p) != p2) {
-					error((uint32_t*)p, p2, bad);
+						error((uint32_t*)p, p2, bad);
 					}
 					*p = p1;
 				} while (--p >= pe);

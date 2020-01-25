@@ -52,7 +52,7 @@ OPTIMIZED_SNIPPET void addr_tst2_snippet2(uint32_t *p, uint32_t *pe)
 	);
 }
 
-OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, int me)
+OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, unsigned me)
 {
 	asm __volatile__ (
 		"jmp L200\n\t"
@@ -71,14 +71,8 @@ OPTIMIZED_SNIPPET void movinvr_snippet1(uint32_t *p, uint32_t *pe, int me)
 	);
 }
 
-OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, int i, int me)
+OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, uint32_t xorVal, unsigned me)
 {
-	uint32_t xorVal;
-	if (i) {
-		xorVal = 0xffffffff;
-	} else {
-		xorVal = 0;
-	}
 	asm __volatile__ (
 		"pushl %%ebp\n\t"
 
@@ -151,9 +145,9 @@ OPTIMIZED_SNIPPET void movinvr_snippet2(uint32_t *p, uint32_t *pe, int i, int me
 	);
 }
 
-OPTIMIZED_SNIPPET void movinv1_snippet1(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1)
+OPTIMIZED_SNIPPET void movinv1_snippet1(uint32_t *p, uint32_t *pe, uint32_t p1)
 {
-	(void)pe;
+	uintptr_t len = pe - p + 1;
 
 	asm __volatile__ (
 		"rep\n\t" \
@@ -162,10 +156,8 @@ OPTIMIZED_SNIPPET void movinv1_snippet1(ulong len, uint32_t *p, uint32_t *pe, ui
 	);
 }
 
-OPTIMIZED_SNIPPET void movinv1_snippet2(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2)
+OPTIMIZED_SNIPPET void movinv1_snippet2(uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2)
 {
-	(void)len;
-
 	asm __volatile__ (
 		"jmp L2\n\t" \
 		".p2align 4,,7\n\t" \
@@ -201,10 +193,8 @@ OPTIMIZED_SNIPPET void movinv1_snippet2(ulong len, uint32_t *p, uint32_t *pe, ui
 	);
 }
 
-OPTIMIZED_SNIPPET void movinv1_snippet3(ulong len, uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2)
+OPTIMIZED_SNIPPET void movinv1_snippet3(uint32_t *p, uint32_t *pe, uint32_t p1, uint32_t p2)
 {
-	(void)len;
-
 	asm __volatile__ (
 		"jmp L9\n\t"
 		".p2align 4,,7\n\t"
@@ -242,7 +232,7 @@ OPTIMIZED_SNIPPET void movinv1_snippet3(ulong len, uint32_t *p, uint32_t *pe, ui
 
 OPTIMIZED_SNIPPET void movinv32_snippet1(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
-	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+	uint32_t *p, uint32_t *pe, uint32_t sval, uint32_t lb // inputs only
 )
 {
 	int k = *p_k;
@@ -276,7 +266,7 @@ OPTIMIZED_SNIPPET void movinv32_snippet1(
 
 OPTIMIZED_SNIPPET void movinv32_snippet2(
 	int *p_k, uint32_t *p_pat, // inputs-outputs
-	uint32_t *p, uint32_t *pe, int sval, uint32_t lb // inputs only
+	uint32_t *p, uint32_t *pe, uint32_t sval, uint32_t lb // inputs only
 )
 {
 	int k = *p_k;

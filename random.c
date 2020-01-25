@@ -10,10 +10,10 @@
 
 /* Keep a separate seed for each CPU */
 /* Space the seeds by at least a cache line or performance suffers big time! */
-static unsigned int SEED_X[MAX_CPUS*16];
-static unsigned int SEED_Y[MAX_CPUS*16];
+static uint32_t SEED_X[MAX_CPUS*16];
+static uint32_t SEED_Y[MAX_CPUS*16];
 
-unsigned long memtest_rand (int cpu)
+uint32_t memtest_rand (int cpu)
 {
    static unsigned int a = 18000, b = 30903;
    int me;
