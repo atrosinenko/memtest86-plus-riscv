@@ -50,5 +50,4 @@ License: GPL 2.
 
 * Move all platform-specific code to `arch/`
 * Make RISC-V port SMP-aware. Now it does not support SMP and may even malfunction in multi-core setups.
-* Implement proper support for multi-arch optimized assembly in `test.c` and implement one for RISC-V.
 * Implement more information fetching from the RISC-V hardware and support for non-SiFive UART, RTC, etc. when needed
